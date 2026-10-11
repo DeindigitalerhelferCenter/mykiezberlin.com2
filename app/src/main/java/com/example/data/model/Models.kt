@@ -21,7 +21,15 @@ data class Kiez(
     val imageUrl: String,
     val impressionImages: List<String> = emptyList(),
     val rentIndex: String = "15,50 €/m²",
-    val vibe: String = "Urban & Lebendig"
+    val vibe: String = "Urban & Lebendig",
+    val transitLines: String = "",
+    val parks: List<String> = emptyList(),
+    val popularSpots: List<String> = emptyList(),
+    val buergeramtName: String = "",
+    val buergeramtAddress: String = "",
+    val policeStation: String = "",
+    val policeAddress: String = "",
+    val policePhone: String = "+49 30 4664 4664"
 )
 
 data class KiezDistrict(

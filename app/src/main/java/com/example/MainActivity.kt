@@ -377,11 +377,11 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                     }
                 }
 
-                // Row 2: 12 Kieze & Gastronomie
+                // Row 2: 22 Kieze & Gastronomie
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SheetGridItem(
                         icon = Icons.Default.LocationOn,
-                        label = if (uiState.language == AppLanguage.TURKISH) "12 Kiez Rehberi" else "Die 12 Kieze",
+                        label = if (uiState.language == AppLanguage.TURKISH) "22 Kiez Rehberi" else "Die 22 Kieze",
                         color = BerlinRed,
                         modifier = Modifier.weight(1f)
                     ) {

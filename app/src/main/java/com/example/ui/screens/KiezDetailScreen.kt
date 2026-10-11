@@ -5,10 +5,12 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppLanguage
 import com.example.data.repository.SampleData
+import com.example.ui.components.BerlinTransitMapComponent
 import com.example.ui.components.KiezPhotoHelper
 import com.example.ui.components.RealKiezImage
 import com.example.ui.theme.*
@@ -44,11 +47,20 @@ fun KiezDetailScreen(
 ) {
     val context = LocalContext.current
     val kiez = remember(kiezId) {
-        SampleData.kieze.find { it.id == kiezId } ?: SampleData.kieze.first()
+        SampleData.kieze.find { it.id == kiezId || it.id.replace("-", "") == kiezId.replace("-", "") }
+            ?: SampleData.kieze.first()
     }
 
     var activeSubTab by remember { mutableStateOf("Überblick") }
-    val subTabs = listOf("Überblick", "Sehenswürdigkeiten", "Essen & Trinken", "Unternehmen", "Events")
+    val subTabs = listOf(
+        "Überblick",
+        "Verkehr & Karte",
+        "Behörden & Polizei",
+        "Sehenswürdigkeiten",
+        "Essen & Trinken",
+        "Unternehmen",
+        "Events"
+    )
 
     val kiezFoodSpots = remember(kiez.name) {
         SampleData.foodSpots.filter { it.kiezName.contains(kiez.name, ignoreCase = true) || kiez.name.contains(it.kiezName, ignoreCase = true) }
@@ -80,6 +92,7 @@ fun KiezDetailScreen(
             ) {
                 RealKiezImage(
                     drawableId = KiezPhotoHelper.getKiezDrawable(kiez.id),
+                    imageUrl = kiez.imageUrl,
                     contentDescription = kiez.name,
                     showBottomGradient = true,
                     modifier = Modifier.fillMaxSize()
@@ -171,11 +184,11 @@ fun KiezDetailScreen(
             }
         }
 
-        // Subtabs Row (Überblick, Sehenswürdigkeiten, Essen & Trinken, Unternehmen, Events)
+        // Subtabs Row
         item {
             ScrollableTabRow(
                 selectedTabIndex = subTabs.indexOf(activeSubTab).coerceAtLeast(0),
-                edgePadding = 16.dp,
+                edgePadding = 14.dp,
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = BerlinRed
             ) {
@@ -188,11 +201,15 @@ fun KiezDetailScreen(
                             Text(
                                 text = when {
                                     language == AppLanguage.TURKISH && tab == "Überblick" -> "Genel Bakış"
+                                    language == AppLanguage.TURKISH && tab == "Verkehr & Karte" -> "Ulaşım & Harita"
+                                    language == AppLanguage.TURKISH && tab == "Behörden & Polizei" -> "Resmi Kurumlar & Karakol"
                                     language == AppLanguage.TURKISH && tab == "Sehenswürdigkeiten" -> "Gezilecek Yerler"
                                     language == AppLanguage.TURKISH && tab == "Essen & Trinken" -> "Yeme & İçme"
                                     language == AppLanguage.TURKISH && tab == "Unternehmen" -> "İşletmeler"
                                     language == AppLanguage.TURKISH && tab == "Events" -> "Etkinlikler"
                                     language == AppLanguage.ENGLISH && tab == "Überblick" -> "Overview"
+                                    language == AppLanguage.ENGLISH && tab == "Verkehr & Karte" -> "Transit & Map"
+                                    language == AppLanguage.ENGLISH && tab == "Behörden & Polizei" -> "Authorities & Police"
                                     language == AppLanguage.ENGLISH && tab == "Sehenswürdigkeiten" -> "Sights"
                                     language == AppLanguage.ENGLISH && tab == "Essen & Trinken" -> "Food & Drinks"
                                     language == AppLanguage.ENGLISH && tab == "Unternehmen" -> "Businesses"
@@ -248,13 +265,13 @@ fun KiezDetailScreen(
                         }
 
                         Card(
-                            modifier = Modifier.weight(1.1f),
+                            modifier = Modifier.weight(1.15f),
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Text(
-                                    text = if (language == AppLanguage.TURKISH) "Kira Endeksi" else "Mietspiegel",
+                                    text = if (language == AppLanguage.TURKISH) "Ekim 2026 Kira" else "Miete Okt 2026",
                                     fontSize = 10.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Bold
@@ -292,6 +309,191 @@ fun KiezDetailScreen(
                                 lineHeight = 21.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    }
+                }
+
+                // Ulaşım Ağı Özeti Kartı
+                item {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(imageVector = Icons.Default.DirectionsTransit, contentDescription = null, tint = BerlinBlue, modifier = Modifier.size(18.dp))
+                                    Text(
+                                        text = if (language == AppLanguage.TURKISH) "Ulaşım Ağı & Bağlantılar" else "Öffentlicher Nahverkehr",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                                TextButton(onClick = { activeSubTab = "Verkehr & Karte" }) {
+                                    Text(if (language == AppLanguage.TURKISH) "Haritada Gör" else "Netzplan", fontSize = 12.sp, color = BerlinRed)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = kiez.transitLines.ifEmpty { "U-Bahn, S-Bahn & Bus-Linien direkt angebunden." },
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 19.sp
+                            )
+                        }
+                    }
+                }
+
+                // Parklar & Yeşil Alanlar Kartı
+                if (kiez.parks.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(imageVector = Icons.Default.Park, contentDescription = null, tint = BerlinGreen, modifier = Modifier.size(18.dp))
+                                    Text(
+                                        text = if (language == AppLanguage.TURKISH) "Parklar & Yeşil Alanlar" else "Parks & Grünanlagen",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    kiez.parks.forEach { park ->
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = BerlinGreenLight
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(imageVector = Icons.Default.NaturePeople, contentDescription = null, tint = BerlinGreen, modifier = Modifier.size(12.dp))
+                                                Text(text = park, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = BerlinGreen)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Popüler Kafe & Restoranlar Kartı
+                if (kiez.popularSpots.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(imageVector = Icons.Default.Restaurant, contentDescription = null, tint = BerlinYellow, modifier = Modifier.size(18.dp))
+                                    Text(
+                                        text = if (language == AppLanguage.TURKISH) "Öne Çıkan Kafe & Restoranlar" else "Beliebte Cafés & Restaurants",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    kiez.popularSpots.forEach { spot ->
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(imageVector = Icons.Default.LocalCafe, contentDescription = null, tint = BerlinYellow, modifier = Modifier.size(12.dp))
+                                                Text(text = spot, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Resmi Daire & Karakol Özeti Kartı
+                if (kiez.buergeramtName.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Icon(imageVector = Icons.Default.AccountBalance, contentDescription = null, tint = BerlinRed, modifier = Modifier.size(18.dp))
+                                        Text(
+                                            text = if (language == AppLanguage.TURKISH) "Resmi Daire & Karakol" else "Bürgeramt & Polizei",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        )
+                                    }
+                                    TextButton(onClick = { activeSubTab = "Behörden & Polizei" }) {
+                                        Text(if (language == AppLanguage.TURKISH) "Detaylar" else "Details", fontSize = 12.sp, color = BerlinRed)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "🏛️ ${kiez.buergeramtName} (${kiez.buergeramtAddress})",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "👮 ${kiez.policeStation} (${kiez.policeAddress})",
+                                    fontSize = 12.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -350,6 +552,7 @@ fun KiezDetailScreen(
                                         ) {
                                             RealKiezImage(
                                                 drawableId = KiezPhotoHelper.getKiezDrawable(kiez.id),
+                                                imageUrl = kiez.imageUrl,
                                                 contentDescription = spotName,
                                                 modifier = Modifier.fillMaxSize()
                                             )
@@ -394,6 +597,278 @@ fun KiezDetailScreen(
                 }
             }
 
+            "Verkehr & Karte" -> {
+                // Berlin U-Bahn & S-Bahn Harita Sekmesi
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        Text(
+                            text = if (language == AppLanguage.TURKISH) "${kiez.name} Ulaşım Ağı & Haritalar" else "Verkehr & Karten für ${kiez.name}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Geçen Hatlar: ${kiez.transitLines}",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Action Buttons: Open in Google Maps & Open BVG
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:${kiez.lat},${kiez.lng}?q=${Uri.encode(kiez.name + " Berlin")}"))
+                                    context.startActivity(Intent.createChooser(mapIntent, "Karte"))
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34A853))
+                            ) {
+                                Icon(imageVector = Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Google Maps", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+
+                            Button(
+                                onClick = {
+                                    val bvgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.bvg.de/de/verbindungen/fahrplanauskunft"))
+                                    context.startActivity(bvgIntent)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3C400))
+                            ) {
+                                Icon(imageVector = Icons.Default.DirectionsSubway, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("BVG Fahrinfo", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            }
+                        }
+                    }
+                }
+
+                // Interactive Berlin Transit Map
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(modifier = Modifier.fillMaxWidth().height(420.dp)) {
+                        BerlinTransitMapComponent(
+                            language = language,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            }
+
+            "Behörden & Polizei" -> {
+                // Resmi Kurumlar & Karakollar Sekmesi
+                item {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        Text(
+                            text = if (language == AppLanguage.TURKISH) "${kiez.name} Resmi Kurumları & Güvenlik" else "Behörden & Polizei in ${kiez.name}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 1. Bürgeramt Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Surface(shape = CircleShape, color = BerlinBlueLight, modifier = Modifier.size(36.dp)) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(imageVector = Icons.Default.AccountBalance, contentDescription = null, tint = BerlinBlue, modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                    Column {
+                                        Text(
+                                            text = kiez.buergeramtName.ifEmpty { "Bürgeramt ${kiez.name}" },
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        )
+                                        Text(
+                                            text = kiez.buergeramtAddress.ifEmpty { "Bezirksamt Berlin" },
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = {
+                                            val terminIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://service.berlin.de/terminvereinbarung/"))
+                                            context.startActivity(terminIntent)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = BerlinBlue),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(if (language == AppLanguage.TURKISH) "Randevu Al (Termin)" else "Termin buchen", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(kiez.buergeramtName + " " + kiez.buergeramtAddress)}"))
+                                            context.startActivity(Intent.createChooser(mapIntent, "Route"))
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(if (language == AppLanguage.TURKISH) "Rota Göster" else "Route", fontSize = 11.5.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 2. Polizeiabschnitt Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Surface(shape = CircleShape, color = BerlinGreenLight, modifier = Modifier.size(36.dp)) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(imageVector = Icons.Default.LocalPolice, contentDescription = null, tint = BerlinGreen, modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                    Column {
+                                        Text(
+                                            text = kiez.policeStation.ifEmpty { "Polizeiabschnitt ${kiez.name}" },
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        )
+                                        Text(
+                                            text = kiez.policeAddress.ifEmpty { "Polizei Berlin" },
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Telefon: ${kiez.policePhone}",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = {
+                                            val dial = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${kiez.policePhone.replace(" ", "")}"))
+                                            context.startActivity(dial)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = BerlinGreen),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(if (language == AppLanguage.TURKISH) "Karakolu Ara" else "Anrufen", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(kiez.policeStation + " " + kiez.policeAddress)}"))
+                                            context.startActivity(Intent.createChooser(mapIntent, "Polizei"))
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Place, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(if (language == AppLanguage.TURKISH) "Haritada Aç" else "Karte", fontSize = 11.5.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // 3. Notruf Schnellanruf Row
+                        Text(
+                            text = if (language == AppLanguage.TURKISH) "Acil Durum Hatları" else "Zentrale Notrufnummern",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = BerlinRedLight,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:110")))
+                                    }
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("110", fontWeight = FontWeight.Black, fontSize = 16.sp, color = BerlinRed)
+                                    Text("Polizei", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = BerlinRedLight,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:112")))
+                                    }
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("112", fontWeight = FontWeight.Black, fontSize = 16.sp, color = BerlinRed)
+                                    Text("Feuerwehr", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .weight(1.3f)
+                                    .clickable {
+                                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:116117")))
+                                    }
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("116 117", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("Arzt-Dienst", fontSize = 10.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             "Sehenswürdigkeiten" -> {
                 item {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -415,7 +890,7 @@ fun KiezDetailScreen(
                     ) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(modifier = Modifier.size(65.dp).clip(RoundedCornerShape(10.dp))) {
-                                RealKiezImage(drawableId = KiezPhotoHelper.getKiezDrawable(kiez.id), contentDescription = sight, modifier = Modifier.fillMaxSize())
+                                RealKiezImage(drawableId = KiezPhotoHelper.getKiezDrawable(kiez.id), imageUrl = kiez.imageUrl, contentDescription = sight, modifier = Modifier.fillMaxSize())
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(text = sight, fontWeight = FontWeight.Bold, fontSize = 14.sp)

@@ -81,271 +81,197 @@ fun BusinessesScreen(
             (activeCategory != "Alle" && activeCategory != "Hepsi" && activeCategory != "Alles") ||
             searchQuery.isNotBlank()
 
+    val filterLabel = remember(activeKiezFilter, activeCategory) {
+        if (activeKiezFilter != "Alle" && activeKiezFilter != "Ganz Berlin" && activeKiezFilter != "Tüm Berlin") {
+            activeKiezFilter
+        } else {
+            activeCategory
+        }
+    }
+
     Scaffold { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // 1. Stories Bar (Instagram-style Kiez Stories)
-            KiezStoriesBar(
-                stories = stories,
-                language = language,
-                onStoryClick = onStoryClick,
-                onAddStoryClick = onAddStoryClick
-            )
-
-            // 2. Sponsor Banner Bar
-            SponsorBannerComponent(
-                language = language,
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
-
-            // 3. KOMPAKT KONTROL BARI (Çok yer kaplamaz, ferah ve kullanışlı)
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 1.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Sol Taraf: Kayıt sayısı ve aktif filtre rozeti
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = BerlinRed.copy(alpha = 0.12f)
-                        ) {
-                            Text(
-                                text = "${allBusinesses.size} ${if (language == AppLanguage.TURKISH) "Kayıt" else "Betriebe"}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = BerlinRed,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                            )
-                        }
-
-                        if (isFilterActive) {
-                            val filterLabel = if (activeKiezFilter != "Alle" && activeKiezFilter != "Ganz Berlin" && activeKiezFilter != "Tüm Berlin") {
-                                activeKiezFilter
-                            } else {
-                                activeCategory
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.clickable { onResetFilters() }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Text(
-                                        text = filterLabel,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1
-                                    )
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Temizle",
-                                        modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Sağ Taraf: Kart / Liste / Harita Seçici Butonları
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Row(modifier = Modifier.padding(2.dp)) {
-                            // Kart Modu
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (viewMode == "card") BerlinRed else Color.Transparent,
-                                modifier = Modifier
-                                    .clickable { onViewModeChange("card") }
-                                    .testTag("mode_card_button")
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ViewAgenda,
-                                        contentDescription = null,
-                                        tint = if (viewMode == "card") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Text(
-                                        text = if (language == AppLanguage.TURKISH) "Kart" else "Karte",
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (viewMode == "card") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            // Liste Modu
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (viewMode == "list") BerlinRed else Color.Transparent,
-                                modifier = Modifier
-                                    .clickable { onViewModeChange("list") }
-                                    .testTag("mode_list_button")
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ViewList,
-                                        contentDescription = null,
-                                        tint = if (viewMode == "list") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Text(
-                                        text = if (language == AppLanguage.TURKISH) "Liste" else "Liste",
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (viewMode == "list") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            // Harita Modu
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (viewMode == "map") BerlinRed else Color.Transparent,
-                                modifier = Modifier
-                                    .clickable { onViewModeChange("map") }
-                                    .testTag("mode_map_button")
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Map,
-                                        contentDescription = null,
-                                        tint = if (viewMode == "map") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Text(
-                                        text = if (language == AppLanguage.TURKISH) "Harita" else "Map",
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (viewMode == "map") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // GÖRÜNÜM MODLARI İÇERİĞİ
             when (viewMode) {
                 "map" -> {
-                    // 1. HARİTA MODU (Interactive Map View)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = 75.dp)
+                    // 1. HARİTA MODU: Tam sayfa kaydırılabilir (Sponsor ve hikâyeler yukarı kaydırılabilir!)
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 90.dp)
                     ) {
-                        KiezMapComponent(
-                            kiezName = activeKiezFilter,
-                            language = language,
-                            onSpotClick = { spotId ->
-                                allBusinesses.firstOrNull { it.id == spotId }?.let { onSelectBusiness(it) }
+                        item(key = "stories") {
+                            KiezStoriesBar(
+                                stories = stories,
+                                language = language,
+                                onStoryClick = onStoryClick,
+                                onAddStoryClick = onAddStoryClick
+                            )
+                        }
+                        item(key = "sponsors") {
+                            SponsorBannerComponent(
+                                language = language,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                        item(key = "control_bar") {
+                            BusinessesControlBar(
+                                businessCount = allBusinesses.size,
+                                isFilterActive = isFilterActive,
+                                filterLabel = filterLabel,
+                                onResetFilters = onResetFilters,
+                                viewMode = viewMode,
+                                onViewModeChange = onViewModeChange,
+                                language = language
+                            )
+                        }
+                        item(key = "map_view") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(580.dp)
+                                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                            ) {
+                                KiezMapComponent(
+                                    kiezName = activeKiezFilter,
+                                    language = language,
+                                    onSpotClick = { spotId ->
+                                        allBusinesses.firstOrNull { it.id == spotId }?.let { onSelectBusiness(it) }
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
 
                 "list" -> {
-                    // 2. LİSTE MODU (Compact List View - Yüksek Bilgi Yoğunluğu)
-                    if (allBusinesses.isEmpty()) {
-                        EmptyBusinessesView(language = language, onResetFilters = onResetFilters)
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 90.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                    // 2. LİSTE MODU: Hikâyeler & Sponsorlar liste ile birlikte yukarı kayar, tam ekran görünürlük!
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 90.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item(key = "stories") {
+                            KiezStoriesBar(
+                                stories = stories,
+                                language = language,
+                                onStoryClick = onStoryClick,
+                                onAddStoryClick = onAddStoryClick
+                            )
+                        }
+                        item(key = "sponsors") {
+                            SponsorBannerComponent(
+                                language = language,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                        item(key = "control_bar") {
+                            BusinessesControlBar(
+                                businessCount = allBusinesses.size,
+                                isFilterActive = isFilterActive,
+                                filterLabel = filterLabel,
+                                onResetFilters = onResetFilters,
+                                viewMode = viewMode,
+                                onViewModeChange = onViewModeChange,
+                                language = language
+                            )
+                        }
+
+                        if (allBusinesses.isEmpty()) {
+                            item(key = "empty") {
+                                EmptyBusinessesView(language = language, onResetFilters = onResetFilters)
+                            }
+                        } else {
                             items(allBusinesses, key = { it.id }) { business ->
                                 val isFav = favoriteIds.contains(business.id)
-                                CompactBusinessListItem(
-                                    business = business,
-                                    isFav = isFav,
-                                    language = language,
-                                    onSelect = { onSelectBusiness(business) },
-                                    onToggleFav = { onToggleFavorite(business.id) },
-                                    onCall = {
-                                        val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${business.phone}"))
-                                        context.startActivity(dialIntent)
-                                    },
-                                    onWhatsApp = {
-                                        val waNumber = business.whatsapp.replace("+", "").replace(" ", "")
-                                        val waIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$waNumber?text=Hallo,%20ich%20habe%20Ihren%20Betrieb%20auf%20Berliner%20Kiez-Check%20gefunden."))
-                                        context.startActivity(waIntent)
-                                    }
-                                )
+                                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                    CompactBusinessListItem(
+                                        business = business,
+                                        isFav = isFav,
+                                        language = language,
+                                        onSelect = { onSelectBusiness(business) },
+                                        onToggleFav = { onToggleFavorite(business.id) },
+                                        onCall = {
+                                            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${business.phone}"))
+                                            context.startActivity(dialIntent)
+                                        },
+                                        onWhatsApp = {
+                                            val waNumber = business.whatsapp.replace("+", "").replace(" ", "")
+                                            val waIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$waNumber?text=Hallo,%20ich%20habe%20Ihren%20Betrieb%20auf%20Berliner%20Kiez-Check%20gefunden."))
+                                            context.startActivity(waIntent)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
                 else -> {
-                    // 3. KART MODU (Card Mode - Büyük Görsel Kartlar)
-                    if (allBusinesses.isEmpty()) {
-                        EmptyBusinessesView(language = language, onResetFilters = onResetFilters)
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 90.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
+                    // 3. KART MODU: Hikâyeler & Sponsorlar kartlar ile birlikte yukarı kayar, kartlar ferahça incelenir!
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 90.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        item(key = "stories") {
+                            KiezStoriesBar(
+                                stories = stories,
+                                language = language,
+                                onStoryClick = onStoryClick,
+                                onAddStoryClick = onAddStoryClick
+                            )
+                        }
+                        item(key = "sponsors") {
+                            SponsorBannerComponent(
+                                language = language,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                        item(key = "control_bar") {
+                            BusinessesControlBar(
+                                businessCount = allBusinesses.size,
+                                isFilterActive = isFilterActive,
+                                filterLabel = filterLabel,
+                                onResetFilters = onResetFilters,
+                                viewMode = viewMode,
+                                onViewModeChange = onViewModeChange,
+                                language = language
+                            )
+                        }
+
+                        if (allBusinesses.isEmpty()) {
+                            item(key = "empty") {
+                                EmptyBusinessesView(language = language, onResetFilters = onResetFilters)
+                            }
+                        } else {
                             items(allBusinesses, key = { it.id }) { business ->
                                 val isFav = favoriteIds.contains(business.id)
-                                CardBusinessItem(
-                                    business = business,
-                                    isFav = isFav,
-                                    language = language,
-                                    onSelect = { onSelectBusiness(business) },
-                                    onToggleFav = { onToggleFavorite(business.id) },
-                                    onCall = {
-                                        val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${business.phone}"))
-                                        context.startActivity(dialIntent)
-                                    },
-                                    onWhatsApp = {
-                                        val waNumber = business.whatsapp.replace("+", "").replace(" ", "")
-                                        val waIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$waNumber?text=Hallo,%20ich%20habe%20Ihren%20Betrieb%20auf%20Berliner%20Kiez-Check%20gefunden."))
-                                        context.startActivity(waIntent)
-                                    },
-                                    onRoute = {
-                                        val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${business.name}+${business.address}"))
-                                        context.startActivity(Intent.createChooser(mapIntent, "Karte öffnen"))
-                                    }
-                                )
+                                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                    CardBusinessItem(
+                                        business = business,
+                                        isFav = isFav,
+                                        language = language,
+                                        onSelect = { onSelectBusiness(business) },
+                                        onToggleFav = { onToggleFavorite(business.id) },
+                                        onCall = {
+                                            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${business.phone}"))
+                                            context.startActivity(dialIntent)
+                                        },
+                                        onWhatsApp = {
+                                            val waNumber = business.whatsapp.replace("+", "").replace(" ", "")
+                                            val waIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$waNumber?text=Hallo,%20ich%20habe%20Ihren%20Betrieb%20auf%20Berliner%20Kiez-Check%20gefunden."))
+                                            context.startActivity(waIntent)
+                                        },
+                                        onRoute = {
+                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(business.name + " " + business.address)}"))
+                                            context.startActivity(mapIntent)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -951,4 +877,171 @@ private fun matchKiezHelper(bizKiez: String, activeKiez: String): Boolean {
     val b = bizKiez.lowercase()
     val a = activeKiez.lowercase()
     return b.contains(a) || a.contains(b)
+}
+
+@Composable
+fun BusinessesControlBar(
+    businessCount: Int,
+    isFilterActive: Boolean,
+    filterLabel: String,
+    onResetFilters: () -> Unit,
+    viewMode: String,
+    onViewModeChange: (String) -> Unit,
+    language: AppLanguage
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Sol Taraf: Kayıt sayısı ve aktif filtre rozeti
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = BerlinRed.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "$businessCount ${if (language == AppLanguage.TURKISH) "Kayıt" else "Betriebe"}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BerlinRed,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+
+                if (isFilterActive) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.clickable { onResetFilters() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = filterLabel,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Temizle",
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Sağ Taraf: Kart / Liste / Harita Seçici Butonları
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Row(modifier = Modifier.padding(2.dp)) {
+                    // Kart Modu
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (viewMode == "card") BerlinRed else Color.Transparent,
+                        modifier = Modifier
+                            .clickable { onViewModeChange("card") }
+                            .testTag("mode_card_button")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ViewAgenda,
+                                contentDescription = null,
+                                tint = if (viewMode == "card") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) "Kart" else "Karte",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (viewMode == "card") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Liste Modu
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (viewMode == "list") BerlinRed else Color.Transparent,
+                        modifier = Modifier
+                            .clickable { onViewModeChange("list") }
+                            .testTag("mode_list_button")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ViewList,
+                                contentDescription = null,
+                                tint = if (viewMode == "list") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) "Liste" else "Liste",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (viewMode == "list") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Harita Modu
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (viewMode == "map") BerlinRed else Color.Transparent,
+                        modifier = Modifier
+                            .clickable { onViewModeChange("map") }
+                            .testTag("mode_map_button")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Map,
+                                contentDescription = null,
+                                tint = if (viewMode == "map") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) "Harita" else "Map",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (viewMode == "map") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

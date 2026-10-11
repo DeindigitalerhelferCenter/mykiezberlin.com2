@@ -208,14 +208,23 @@ fun AdminScreen(
     val approvedStories = stories.filter { it.status == "approved" }
     val rejectedOrOldStories = stories.filter { it.status == "rejected" || it.status == "expired" }
 
+    var tabMenuExpanded by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("My Kiez Berlin Admin", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Text(
-                            "Zu prüfen: ${pendingStories.size} · Online: ${approvedStories.size} · Umsatz 30 Tage: 0,00 €",
+                            text = if (language == AppLanguage.TURKISH) "My Kiez Berlin Admin" else "My Kiez Berlin Admin",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = if (language == AppLanguage.TURKISH)
+                                "Onay Bekleyen: ${pendingStories.size} · Yayında: ${approvedStories.size}"
+                            else
+                                "Zu prüfen: ${pendingStories.size} · Online: ${approvedStories.size}",
                             fontSize = 11.sp,
                             color = Color(0xFFA9B3BC)
                         )
@@ -227,17 +236,16 @@ fun AdminScreen(
                     }
                 },
                 actions = {
-                    // + Neue Story (Admin) button directly in TopBar / Header
-                    Button(
+                    // Small + Story button
+                    FilledTonalButton(
                         onClick = { showAdminCreateStoryDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F9D55)),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("+ Story", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(if (language == AppLanguage.TURKISH) "+ Story Ekle" else "+ Story", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -247,280 +255,396 @@ fun AdminScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        // ENTIRE ADMIN DASHBOARD IN ONE SINGLE LAZYCOLUMN - NOTHING IS FIXED!
+        // When admin scrolls, header and menus scroll up naturally, giving 100% of the screen to stories!
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(Color(0xFF141B22))
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Admin Navigation Tabs (Zu prüfen, Online, Abgelehnt, Sponsoren, Jobs, Werbeanfragen, Kiez-Reporter)
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF1C252E))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val tabs = listOf(
-                    "pending" to "Zu prüfen (${pendingStories.size})",
-                    "approved" to "Online (${approvedStories.size})",
-                    "rejected" to "Abgelaufen / abgelehnt (${rejectedOrOldStories.size})",
-                    "sponsors" to "Sponsoren",
-                    "jobs" to "Jobs",
-                    "requests" to "Werbeanfragen",
-                    "posts" to "Kiez-Reporter"
-                )
-                items(tabs) { (key, label) ->
-                    val isSelected = currentTab == key
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isSelected) Color(0xFFE9ECE6) else Color(0xFF26323D),
-                        modifier = Modifier.clickable { onTabChange(key) }
-                    ) {
-                        Text(
-                            text = label,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            color = if (isSelected) Color(0xFF141B22) else Color(0xFFE9ECE6),
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            }
-
-            // Quick Banner for "+ Neue Story (Admin)" in Story views
-            if (currentTab == "pending" || currentTab == "approved" || currentTab == "rejected") {
-                Surface(
-                    color = Color(0xFF1C252E),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(8.dp)
+            // 1. Compact Admin Overview Card (Clean, no huge text, no green light)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1C252E))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Admin Story-Manager: Direkte Freigabe & Medien-Vorschau",
-                            fontSize = 12.sp,
-                            color = Color(0xFFA9B3BC)
-                        )
-                        Button(
-                            onClick = { showAdminCreateStoryDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F9D55)),
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) "Kullanıcı Hikayeleri Yönetimi" else "Story-Manager & Freigabe",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (language == AppLanguage.TURKISH)
+                                    "Kullanıcıların paylaştığı fotoğraf ve videoları inceleyip onaylayın."
+                                else
+                                    "Eingereichte Stories prüfen, ansehen und freigeben.",
+                                color = Color(0xFFA9B3BC),
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        Surface(
                             shape = RoundedCornerShape(6.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            color = if (pendingStories.isNotEmpty()) Color(0xFFD97706).copy(alpha = 0.2f) else Color(0xFF26323D)
                         ) {
-                            Text("+ Neue Story (Admin)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) "${pendingStories.size} Bekliyor" else "${pendingStories.size} Zu prüfen",
+                                color = if (pendingStories.isNotEmpty()) Color(0xFFFBBF24) else Color(0xFFA9B3BC),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
                         }
                     }
                 }
             }
 
-            // Main Content based on currentTab
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                when (currentTab) {
-                    "pending" -> {
-                        if (pendingStories.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("Keine ausstehenden Stories zur Prüfung. 🎉", color = Color(0xFFA9B3BC))
-                                }
-                            }
-                        } else {
-                            items(pendingStories) { story ->
-                                AdminStoryCard(
-                                    story = story,
-                                    isPending = true,
-                                    onPreview = { previewStory = story },
-                                    onApprove = { hours ->
-                                        onApproveStory(story.id, hours)
-                                        Toast.makeText(context, "Story freigegeben!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    onReject = {
-                                        onRejectStory(story.id, "Von Admin abgelehnt")
-                                        Toast.makeText(context, "Story abgelehnt!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    onExtend = { h -> onExtendStory(story.id, h) },
-                                    onDelete = {
-                                        onDeleteStory(story.id)
-                                        Toast.makeText(context, "Story gelöscht!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    onEdit = {
-                                        editingStory = story
-                                        editHeadline = story.headline
-                                        editSubtext = story.subtext
-                                    }
-                                )
-                            }
-                        }
-                    }
+            // 2. Compact Hamburger Menu / Dropdown Selector for Navigation Tabs
+            item {
+                val tabLabels = listOf(
+                    "pending" to (if (language == AppLanguage.TURKISH) "🟡 Onay Bekleyenler (${pendingStories.size})" else "🟡 Zu prüfen (${pendingStories.size})"),
+                    "approved" to (if (language == AppLanguage.TURKISH) "🟢 Yayındakiler (${approvedStories.size})" else "🟢 Online (${approvedStories.size})"),
+                    "rejected" to (if (language == AppLanguage.TURKISH) "🔴 Reddedilen / Eski (${rejectedOrOldStories.size})" else "🔴 Abgelaufen (${rejectedOrOldStories.size})"),
+                    "sponsors" to (if (language == AppLanguage.TURKISH) "🏢 Sponsörler (${SampleData.sponsors.size})" else "🏢 Sponsoren (${SampleData.sponsors.size})"),
+                    "jobs" to "💼 Jobs",
+                    "requests" to (if (language == AppLanguage.TURKISH) "📢 Reklam Talepleri" else "📢 Werbeanfragen"),
+                    "posts" to "📰 Kiez-Reporter"
+                )
 
-                    "approved" -> {
-                        if (approvedStories.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("Keine aktiven Stories online.", color = Color(0xFFA9B3BC))
-                                }
-                            }
-                        } else {
-                            items(approvedStories) { story ->
-                                AdminStoryCard(
-                                    story = story,
-                                    isPending = false,
-                                    onPreview = { previewStory = story },
-                                    onApprove = { h -> onApproveStory(story.id, h) },
-                                    onReject = { onRejectStory(story.id, "Gesperrt") },
-                                    onExtend = { h ->
-                                        onExtendStory(story.id, h)
-                                        Toast.makeText(context, "+$h Std. verlängert!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    onDelete = {
-                                        onDeleteStory(story.id)
-                                        Toast.makeText(context, "Story gelöscht!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    onEdit = {
-                                        editingStory = story
-                                        editHeadline = story.headline
-                                        editSubtext = story.subtext
-                                    }
-                                )
-                            }
-                        }
-                    }
+                val activeLabel = tabLabels.firstOrNull { it.first == currentTab }?.second ?: currentTab
 
-                    "rejected" -> {
-                        if (rejectedOrOldStories.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("Keine abgelehnten Stories.", color = Color(0xFFA9B3BC))
-                                }
-                            }
-                        } else {
-                            items(rejectedOrOldStories) { story ->
-                                AdminStoryCard(
-                                    story = story,
-                                    isPending = false,
-                                    onPreview = { previewStory = story },
-                                    onApprove = { h -> onApproveStory(story.id, h) },
-                                    onReject = { onRejectStory(story.id, "Abgelehnt") },
-                                    onExtend = { h -> onExtendStory(story.id, h) },
-                                    onDelete = { onDeleteStory(story.id) },
-                                    onEdit = {
-                                        editingStory = story
-                                        editHeadline = story.headline
-                                        editSubtext = story.subtext
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    "sponsors" -> {
-                        item {
-                            Text("Aktive Sponsoren (${SampleData.sponsors.size})", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 16.sp)
-                        }
-                        items(SampleData.sponsors) { sp ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C252E))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Dropdown / Hamburger Menu Selector
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF1C252E),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { tabMenuExpanded = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(14.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                                ) {
-                                    // Real sponsor WebP image preview matching user request & Image 2
-                                    Box(
-                                        modifier = Modifier
-                                            .width(100.dp)
-                                            .height(60.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Image(
-                                            painter = painterResource(id = sp.drawableRes),
-                                            contentDescription = sp.name,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.fillMaxSize().padding(4.dp)
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Menü",
+                                    tint = Color(0xFFCBD5E1),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = activeLabel,
+                                    color = Color.White,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = Color(0xFFA9B3BC)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = tabMenuExpanded,
+                            onDismissRequest = { tabMenuExpanded = false }
+                        ) {
+                            tabLabels.forEach { (key, label) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = label,
+                                            fontWeight = if (currentTab == key) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (currentTab == key) BerlinGreen else Color.Unspecified
                                         )
+                                    },
+                                    onClick = {
+                                        onTabChange(key)
+                                        tabMenuExpanded = false
                                     }
-
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                            Text(sp.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                                            Text("Aktiv", color = Color(0xFF1F9D55), fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        }
-                                        Text(sp.headlineDe, color = Color(0xFFA9B3BC), fontSize = 11.5.sp)
-                                        Text("239 Einblendungen · 10 Klicks · 4.2% CTR", color = Color(0xFF718096), fontSize = 10.5.sp)
-                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
-                                            Button(
-                                                onClick = { Toast.makeText(context, "Sponsor pausiert", Toast.LENGTH_SHORT).show() },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26323D)),
-                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                                shape = RoundedCornerShape(6.dp)
-                                            ) {
-                                                Text("Pausieren", fontSize = 10.sp, color = Color.White)
-                                            }
-                                            Button(
-                                                onClick = { Toast.makeText(context, "Bericht kopiert", Toast.LENGTH_SHORT).show() },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26323D)),
-                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                                shape = RoundedCornerShape(6.dp)
-                                            ) {
-                                                Text("Bericht kopieren", fontSize = 10.sp, color = Color.White)
-                                            }
-                                        }
-                                    }
-                                }
+                                )
                             }
                         }
                     }
 
-                    "requests" -> {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1C252E))
+                    // Quick 3-chip switch row (Zu prüfen, Online, Abgelehnt)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            "pending" to (if (language == AppLanguage.TURKISH) "Onay (${pendingStories.size})" else "Prüfen (${pendingStories.size})"),
+                            "approved" to (if (language == AppLanguage.TURKISH) "Online (${approvedStories.size})" else "Online (${approvedStories.size})"),
+                            "rejected" to (if (language == AppLanguage.TURKISH) "Reddedilen" else "Archiv")
+                        ).forEach { (key, label) ->
+                            val isSelected = currentTab == key
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSelected) Color(0xFFE9ECE6) else Color(0xFF26323D),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onTabChange(key) }
                             ) {
-                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("ErsenBox (Banner-Werbung)", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                                    Text("John Cloud · johncloud401@gmail.com · 0176 82015455", color = Color(0xFFA9B3BC), fontSize = 12.sp)
-                                    Text("Status: Ausstehende Prüfung", color = BerlinYellow, fontSize = 11.sp)
+                                Text(
+                                    text = label,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 7.dp),
+                                    color = if (isSelected) Color(0xFF141B22) else Color(0xFFCBD5E1),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Tab Content Items (Fully Scrollable in the main LazyColumn)
+            when (currentTab) {
+                "pending" -> {
+                    if (pendingStories.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (language == AppLanguage.TURKISH) "Onay bekleyen hikaye yok. 🎉" else "Keine ausstehenden Stories zur Prüfung. 🎉",
+                                    color = Color(0xFFA9B3BC)
+                                )
+                            }
+                        }
+                    } else {
+                        items(pendingStories) { story ->
+                            AdminStoryCard(
+                                story = story,
+                                isPending = true,
+                                onPreview = { previewStory = story },
+                                onApprove = { hours ->
+                                    onApproveStory(story.id, hours)
+                                    Toast.makeText(
+                                        context,
+                                        if (language == AppLanguage.TURKISH) "Hikaye onaylandı ve yayına alındı!" else "Story freigegeben!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                onReject = {
+                                    onRejectStory(story.id, "Von Admin abgelehnt")
+                                    Toast.makeText(
+                                        context,
+                                        if (language == AppLanguage.TURKISH) "Hikaye reddedildi!" else "Story abgelehnt!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                onExtend = { h -> onExtendStory(story.id, h) },
+                                onDelete = {
+                                    onDeleteStory(story.id)
+                                    Toast.makeText(
+                                        context,
+                                        if (language == AppLanguage.TURKISH) "Hikaye silindi!" else "Story gelöscht!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                onEdit = {
+                                    editingStory = story
+                                    editHeadline = story.headline
+                                    editSubtext = story.subtext
+                                }
+                            )
+                        }
+                    }
+                }
+
+                "approved" -> {
+                    if (approvedStories.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (language == AppLanguage.TURKISH) "Yayında olan hikaye yok." else "Keine aktiven Stories online.",
+                                    color = Color(0xFFA9B3BC)
+                                )
+                            }
+                        }
+                    } else {
+                        items(approvedStories) { story ->
+                            AdminStoryCard(
+                                story = story,
+                                isPending = false,
+                                onPreview = { previewStory = story },
+                                onApprove = { h -> onApproveStory(story.id, h) },
+                                onReject = { onRejectStory(story.id, "Gesperrt") },
+                                onExtend = { h ->
+                                    onExtendStory(story.id, h)
+                                    Toast.makeText(context, "+$h Std. verlängert!", Toast.LENGTH_SHORT).show()
+                                },
+                                onDelete = {
+                                    onDeleteStory(story.id)
+                                    Toast.makeText(context, "Story gelöscht!", Toast.LENGTH_SHORT).show()
+                                },
+                                onEdit = {
+                                    editingStory = story
+                                    editHeadline = story.headline
+                                    editSubtext = story.subtext
+                                }
+                            )
+                        }
+                    }
+                }
+
+                "rejected" -> {
+                    if (rejectedOrOldStories.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (language == AppLanguage.TURKISH) "Reddedilen hikaye yok." else "Keine abgelehnten Stories.",
+                                    color = Color(0xFFA9B3BC)
+                                )
+                            }
+                        }
+                    } else {
+                        items(rejectedOrOldStories) { story ->
+                            AdminStoryCard(
+                                story = story,
+                                isPending = false,
+                                onPreview = { previewStory = story },
+                                onApprove = { h -> onApproveStory(story.id, h) },
+                                onReject = { onRejectStory(story.id, "Abgelehnt") },
+                                onExtend = { h -> onExtendStory(story.id, h) },
+                                onDelete = { onDeleteStory(story.id) },
+                                onEdit = {
+                                    editingStory = story
+                                    editHeadline = story.headline
+                                    editSubtext = story.subtext
+                                }
+                            )
+                        }
+                    }
+                }
+
+                "sponsors" -> {
+                    item {
+                        Text(
+                            text = if (language == AppLanguage.TURKISH) "Aktif Sponsörler (${SampleData.sponsors.size})" else "Aktive Sponsoren (${SampleData.sponsors.size})",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 15.sp
+                        )
+                    }
+                    items(SampleData.sponsors) { sp ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1C252E))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(100.dp)
+                                        .height(60.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.White),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = sp.drawableRes),
+                                        contentDescription = sp.name,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize().padding(4.dp)
+                                    )
+                                }
+
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                        Text(sp.name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                                        Text("Aktiv", color = Color(0xFF1F9D55), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    }
+                                    Text(sp.headlineDe, color = Color(0xFFA9B3BC), fontSize = 11.5.sp)
+                                    Text("239 Einblendungen · 10 Klicks · 4.2% CTR", color = Color(0xFF718096), fontSize = 10.5.sp)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
+                                        Button(
+                                            onClick = { Toast.makeText(context, "Sponsor pausiert", Toast.LENGTH_SHORT).show() },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26323D)),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text("Pausieren", fontSize = 10.sp, color = Color.White)
+                                        }
+                                        Button(
+                                            onClick = { Toast.makeText(context, "Bericht kopiert", Toast.LENGTH_SHORT).show() },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF26323D)),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text("Bericht kopieren", fontSize = 10.sp, color = Color.White)
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+                }
 
-                    else -> {
-                        item {
-                            Text("Bereich '${currentTab}' geladen.", color = Color(0xFFA9B3BC))
+                "requests" -> {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1C252E))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("ErsenBox (Banner-Werbung)", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                                Text("John Cloud · johncloud401@gmail.com · 0176 82015455", color = Color(0xFFA9B3BC), fontSize = 12.sp)
+                                Text("Status: Ausstehende Prüfung", color = BerlinYellow, fontSize = 11.sp)
+                            }
                         }
+                    }
+                }
+
+                else -> {
+                    item {
+                        Text("Bereich '${currentTab}' geladen.", color = Color(0xFFA9B3BC))
                     }
                 }
             }
@@ -673,100 +797,125 @@ fun AdminStoryCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Media Thumbnail Preview (Clean aspect ratio box, fully visible)
-                Box(
-                    modifier = Modifier
-                        .width(76.dp)
-                        .height(105.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, Color(0xFF4A5866), RoundedCornerShape(8.dp))
-                        .background(Color(0xFF18191A))
-                        .clickable { onPreview() },
-                    contentAlignment = Alignment.Center
+                // Media Thumbnail Preview (Clean aspect ratio box, fully visible with clear preview button)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(92.dp)
                 ) {
-                    if (story.mediaUri != null) {
-                        AsyncImage(
-                            model = story.mediaUri,
-                            contentDescription = story.headline,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
-                        if (story.isVideo) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(125.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, Color(0xFF4A5866), RoundedCornerShape(8.dp))
+                            .background(Color(0xFF18191A))
+                            .clickable { onPreview() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (story.mediaUri != null) {
+                            AsyncImage(
+                                model = story.mediaUri,
+                                contentDescription = story.headline,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            if (story.isVideo) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.35f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Default.PlayCircle, contentDescription = "Video", tint = Color.White, modifier = Modifier.size(28.dp))
+                                }
+                            }
+                        } else if (story.mediaResId != null) {
+                            Image(
+                                painter = painterResource(id = story.mediaResId),
+                                contentDescription = story.headline,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            // Text story thumbnail with category icon
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Icon(imageVector = Icons.Default.PlayCircle, contentDescription = "Video", tint = Color.White, modifier = Modifier.size(24.dp))
+                                Icon(
+                                    imageVector = when (story.kind) {
+                                        "traffic" -> Icons.Default.Traffic
+                                        "event" -> Icons.Default.Celebration
+                                        "warn" -> Icons.Default.Warning
+                                        else -> Icons.Default.Newspaper
+                                    },
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(story.kiez.take(2).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
-                    } else if (story.mediaResId != null) {
-                        Image(
-                            painter = painterResource(id = story.mediaResId),
-                            contentDescription = story.headline,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
-                    } else {
-                        // Text story thumbnail with category icon
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+
+                        // "Vorschau" Badge
+                        Surface(
+                            shape = RoundedCornerShape(topStart = 4.dp),
+                            color = Color.Black.copy(alpha = 0.75f),
+                            modifier = Modifier.align(Alignment.BottomEnd)
                         ) {
-                            Icon(
-                                imageVector = when (story.kind) {
-                                    "traffic" -> Icons.Default.Traffic
-                                    "event" -> Icons.Default.Celebration
-                                    "warn" -> Icons.Default.Warning
-                                    else -> Icons.Default.Newspaper
-                                },
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(story.kiez.take(2).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text("Büyük Gör", color = Color.White, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                         }
                     }
 
-                    // "Vorschau" Badge
+                    Spacer(modifier = Modifier.height(4.dp))
+
                     Surface(
-                        shape = RoundedCornerShape(topStart = 4.dp),
-                        color = Color.Black.copy(alpha = 0.75f),
-                        modifier = Modifier.align(Alignment.BottomEnd)
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF26323D),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPreview() }
                     ) {
-                        Text("Vorschau", color = Color.White, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                        Row(
+                            modifier = Modifier.padding(vertical = 3.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(imageVector = Icons.Default.Visibility, contentDescription = null, tint = Color(0xFF60A5FA), modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Önizle", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 
                 // Story Content & Details
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     Text(
                         text = story.headline,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.5.sp,
-                        maxLines = 2
+                        fontSize = 13.sp,
+                        maxLines = 3
                     )
 
                     if (story.subtext.isNotBlank()) {
                         Text(
                             text = story.subtext,
                             color = Color(0xFFCBD5E1),
-                            fontSize = 11.sp,
-                            maxLines = 2,
-                            lineHeight = 14.sp
+                            fontSize = 11.5.sp,
+                            maxLines = 4,
+                            lineHeight = 15.sp
                         )
                     }
 
                     Text(
-                        text = "Von: ${story.author} · ${story.timeAgo}",
+                        text = "Gönderen: ${story.author} · ${story.timeAgo}",
                         color = Color(0xFF94A3B8),
-                        fontSize = 10.sp
+                        fontSize = 10.5.sp
                     )
 
                     Surface(
@@ -774,7 +923,7 @@ fun AdminStoryCard(
                         color = if (story.modNote.contains("OK") || story.modNote.contains("Admin")) Color(0xFF1F9D55).copy(alpha = 0.2f) else BerlinRed.copy(alpha = 0.2f)
                     ) {
                         Text(
-                            text = "Prüfung: ${story.modNote}",
+                            text = story.modNote,
                             color = if (story.modNote.contains("OK") || story.modNote.contains("Admin")) Color(0xFF4ADE80) else Color(0xFFF87171),
                             fontSize = 9.5.sp,
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
@@ -787,14 +936,14 @@ fun AdminStoryCard(
             Divider(color = Color(0xFF334155), modifier = Modifier.padding(vertical = 4.dp))
 
             if (isPending || story.status == "pending") {
-                // Duration selection row (24h, 48h, 7 Tage)
+                // Duration selection row (24h, 48h, 7 Tage, 30 Tage)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Laufzeit:", color = Color(0xFFA9B3BC), fontSize = 10.5.sp)
-                    listOf(24 to "24h", 48 to "48h", 168 to "7T").forEach { (h, lbl) ->
+                    Text("Yayın:", color = Color(0xFFA9B3BC), fontSize = 10.5.sp)
+                    listOf(24 to "24s", 48 to "48s", 168 to "7 Gün", 720 to "30 Gün").forEach { (h, lbl) ->
                         FilterChip(
                             selected = (selectedDuration ?: story.durationHours) == h,
                             onClick = { selectedDuration = h },
@@ -814,18 +963,22 @@ fun AdminStoryCard(
                         onClick = { onApprove(selectedDuration ?: story.durationHours) },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F9D55)),
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1.2f)
                     ) {
-                        Text("Freigeben", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Onayla & Canlıya Al", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
                     }
 
                     Button(
                         onClick = onReject,
                         colors = ButtonDefaults.buttonColors(containerColor = BerlinRed),
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(0.8f)
                     ) {
-                        Text("Ablehnen", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Icon(imageVector = Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Reddet", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
                     }
                 }
             } else if (story.status == "approved") {
@@ -948,7 +1101,7 @@ fun AdminCreateStoryModal(
         }
     }
 
-    val kieze = listOf("Mitte", "Kreuzberg", "Neukölln", "Friedrichshain", "Prenzlauer Berg", "Wedding", "Schöneberg", "Charlottenburg", "Moabit", "Tempelhof", "Wilmersdorf", "Pankow", "Ganz Berlin")
+    val kieze = remember { SampleData.kieze.map { it.name }.distinct() + listOf("Ganz Berlin") }
 
     Dialog(
         onDismissRequest = onDismiss,

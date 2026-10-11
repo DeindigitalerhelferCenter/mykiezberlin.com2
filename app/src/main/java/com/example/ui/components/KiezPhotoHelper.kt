@@ -11,25 +11,37 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import coil.compose.AsyncImage
 import com.example.R
 
 object KiezPhotoHelper {
 
     @DrawableRes
     fun getKiezDrawable(kiezId: String): Int {
-        return when (kiezId.lowercase()) {
+        return when (kiezId.lowercase().replace("-", "").replace(" ", "").replace("ö", "oe").replace("ä", "ae").replace("ü", "ue")) {
             "mitte" -> R.drawable.kiez_mitte
             "kreuzberg" -> R.drawable.kiez_kreuzberg
-            "neukoelln", "neukölln" -> R.drawable.kiez_neukoelln
+            "neukoelln" -> R.drawable.kiez_neukoelln
             "friedrichshain" -> R.drawable.kiez_friedrichshain
-            "prenzlauerberg", "prenzlauer berg" -> R.drawable.kiez_prenzlauerberg
+            "prenzlauerberg" -> R.drawable.kiez_prenzlauerberg
             "charlottenburg" -> R.drawable.kiez_charlottenburg
-            "schoeneberg", "schöneberg" -> R.drawable.kiez_schoeneberg
+            "wilmersdorf" -> R.drawable.kiez_wilmersdorf
+            "schoeneberg" -> R.drawable.kiez_schoeneberg
             "wedding" -> R.drawable.kiez_wedding
+            "gesundbrunnen" -> R.drawable.kiez_wedding
             "moabit" -> R.drawable.kiez_moabit
             "tiergarten" -> R.drawable.kiez_tiergarten
-            "wilmersdorf" -> R.drawable.kiez_wilmersdorf
             "tempelhof" -> R.drawable.kiez_tempelhof
+            "steglitz" -> R.drawable.kiez_schoeneberg
+            "zehlendorf" -> R.drawable.kiez_wilmersdorf
+            "spandau" -> R.drawable.kiez_charlottenburg
+            "reinickendorf" -> R.drawable.kiez_wedding
+            "pankow" -> R.drawable.kiez_prenzlauerberg
+            "lichtenberg" -> R.drawable.kiez_friedrichshain
+            "treptow" -> R.drawable.kiez_neukoelln
+            "koepenick" -> R.drawable.kiez_tiergarten
+            "marzahn" -> R.drawable.kiez_mitte
+            "britz" -> R.drawable.kiez_neukoelln
             else -> R.drawable.hero_berlin
         }
     }
@@ -83,16 +95,28 @@ fun RealKiezImage(
     @DrawableRes drawableId: Int,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    imageUrl: String? = null,
     contentScale: ContentScale = ContentScale.Crop,
     showBottomGradient: Boolean = false
 ) {
     Box(modifier = modifier) {
-        Image(
-            painter = painterResource(id = drawableId),
-            contentDescription = contentDescription,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = contentScale
-        )
+        if (!imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = imageUrl,
+                placeholder = painterResource(id = drawableId),
+                error = painterResource(id = drawableId),
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = contentScale
+            )
+        } else {
+            Image(
+                painter = painterResource(id = drawableId),
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = contentScale
+            )
+        }
         if (showBottomGradient) {
             Box(
                 modifier = Modifier

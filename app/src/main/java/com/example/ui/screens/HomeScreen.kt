@@ -189,7 +189,7 @@ fun HomeScreen(
                         color = BerlinRed
                     ) {
                         Text(
-                            text = "BERLIN GUIDE 2026 · 12 KIEZE",
+                            text = "BERLIN GUIDE 2026 · 22 KIEZE",
                             color = Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -212,9 +212,9 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = when (language) {
-                                AppLanguage.TURKISH -> "12 Mahalle, gizli lezzetler ve yerel işletmeler"
-                                AppLanguage.ENGLISH -> "12 Neighborhoods, authentic food & businesses"
-                                else -> "12 Kieze. Deine Stadt. Dein Berlin."
+                                AppLanguage.TURKISH -> "22 Mahalle, gizli lezzetler ve yerel işletmeler"
+                                AppLanguage.ENGLISH -> "22 Neighborhoods, authentic food & businesses"
+                                else -> "22 Kieze. Deine Stadt. Dein Berlin."
                             },
                             color = Color.White.copy(alpha = 0.9f),
                             fontSize = 12.sp
@@ -232,9 +232,9 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = when (language) {
-                                AppLanguage.TURKISH -> "12 Kiezi Keşfet"
-                                AppLanguage.ENGLISH -> "Explore 12 Kieze"
-                                else -> "12 Kieze entdecken"
+                                AppLanguage.TURKISH -> "22 Kiezi Keşfet"
+                                AppLanguage.ENGLISH -> "Explore 22 Kieze"
+                                else -> "22 Kieze entdecken"
                             },
                             color = Color.White,
                             fontSize = 12.sp,
@@ -251,14 +251,14 @@ fun HomeScreen(
             }
         }
 
-        // 12 Kieze Quick Selector Row with real mini photos
+        // 22 Kieze Quick Selector Row with real mini photos
         item {
             Column(modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)) {
                 Text(
                     text = when (language) {
-                        AppLanguage.TURKISH -> "12 Berlin Kiezi (Hızlı Seçim)"
-                        AppLanguage.ENGLISH -> "12 Berlin Kieze (Quick Select)"
-                        else -> "Die 12 Berliner Kieze (Schnellauswahl)"
+                        AppLanguage.TURKISH -> "22 Berlin Kiezi (Hızlı Seçim)"
+                        AppLanguage.ENGLISH -> "22 Berlin Kieze (Quick Select)"
+                        else -> "Die 22 Berliner Kieze (Schnellauswahl)"
                     },
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,

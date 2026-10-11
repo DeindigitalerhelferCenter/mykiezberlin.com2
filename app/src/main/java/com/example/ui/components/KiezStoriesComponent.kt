@@ -316,7 +316,8 @@ fun StoryViewerDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
+                        .weight(1f, fill = false)
+                        .heightIn(min = 260.dp, max = 460.dp)
                         .background(Color.Black),
                     contentAlignment = Alignment.Center
                 ) {
@@ -409,66 +410,66 @@ fun StoryViewerDialog(
                     }
                 }
 
-                // 6. GÖREV: BUTONLAR HER ZAMAN AYNI YERDE SABİT & ERGONOMİK (Metne göre ASLA yeri değişmez)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 6. GÖREV: YUKARI KAYDIRILMIŞ ERGONOMİK AKSİYON ALANI (Geniş boşluk, tam görünürlük)
                 Surface(
-                    color = Color(0xFF18191A),
+                    color = Color(0xFF232528),
+                    shape = RoundedCornerShape(18.dp),
+                    tonalElevation = 6.dp,
+                    shadowElevation = 8.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding()
+                        .padding(horizontal = 14.dp)
+                        .padding(bottom = 32.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
                     ) {
-                        // Metin Alanı: Sabit / kontrollü yükseklik - Butonların yerini ASLA kaydırmaz
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            verticalArrangement = Arrangement.Center
+                        // Metin Başlığı ve Kategori Rozeti
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = bannerColor
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = bannerColor
-                                ) {
-                                    Text(
-                                        text = story.kind.uppercase(),
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                    )
-                                }
                                 Text(
-                                    text = story.headline,
+                                    text = story.kind.uppercase(),
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    maxLines = 1,
-                                    modifier = Modifier.weight(1f)
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                             }
-
-                            if (story.subtext.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(3.dp))
-                                Text(
-                                    text = story.subtext,
-                                    color = Color(0xFFCBD5E1),
-                                    fontSize = 12.sp,
-                                    maxLines = 1,
-                                    lineHeight = 16.sp
-                                )
-                            }
+                            Text(
+                                text = story.headline,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        if (story.subtext.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = story.subtext,
+                                color = Color(0xFFE2E8F0),
+                                fontSize = 12.sp,
+                                maxLines = 2,
+                                lineHeight = 16.sp
+                            )
+                        }
 
-                        // 6. & 7. GÖREV: SABİT ERGONOMİK AKSİYON BUTONLARI (Her zaman aynı yerde, 48dp erişilebilirlik)
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 6. & 7. GÖREV: YUKARI TAŞINMIŞ BÜYÜK & BELİRGİN AKSİYON BUTONLARI
                         val hasExternalSource = story.link.isNotBlank() &&
                                 story.link != "https://mykiezberlin.com" &&
                                 (story.link.startsWith("http://") || story.link.startsWith("https://"))
@@ -476,12 +477,11 @@ fun StoryViewerDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp),
+                                .height(50.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // [DEVAM OKU] Button
-                            // 7. GÖREV: Kaynak varsa doğrudan kaynak linki açılır, yoksa direkt resim ve metin popup'ı açılır!
+                            // [KAYNAĞA GİT / DEVAM OKU] Button
                             Button(
                                 onClick = {
                                     if (hasExternalSource) {
@@ -496,11 +496,11 @@ fun StoryViewerDialog(
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = BerlinRed),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
                                     .weight(1.3f)
                                     .fillMaxHeight(),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                             ) {
                                 Icon(
                                     imageVector = if (hasExternalSource) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.MenuBook,
@@ -521,7 +521,6 @@ fun StoryViewerDialog(
                             }
 
                             // [DAMGALI İNDİR] Button
-                            // 5. GÖREV: Logolu / Damgalı İndir (Resim veya Metin fark etmeksizin logosuz asla indirilmez)
                             Button(
                                 onClick = {
                                     val bmp = if (story.mediaResId != null) {
@@ -548,18 +547,18 @@ fun StoryViewerDialog(
                                         WatermarkHelper.saveWatermarkedImageToGallery(context, textBmp, "Story_${story.kiez}")
                                     }
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
-                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1.1f)
                                     .fillMaxHeight(),
                                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
-                                    text = if (language == AppLanguage.TURKISH) "Damgalı İndir" else "Mit Logo",
-                                    fontSize = 10.5.sp,
+                                    text = if (language == AppLanguage.TURKISH) "İndir" else "Download",
+                                    fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1
                                 )
@@ -579,17 +578,17 @@ fun StoryViewerDialog(
                                     context.startActivity(Intent.createChooser(shareIntent, "Story teilen"))
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = BerlinGreen),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight(),
                                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
                                     text = if (language == AppLanguage.TURKISH) "Paylaş" else "Teilen",
-                                    fontSize = 10.5.sp,
+                                    fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1
                                 )
@@ -793,6 +792,7 @@ fun StoryCreateDialog(
 
     var selectedMediaUri by remember { mutableStateOf<String?>(null) }
     var isVideoMedia by remember { mutableStateOf(false) }
+    var durationMenuExpanded by remember { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -956,28 +956,191 @@ fun StoryCreateDialog(
                     }
                 }
 
-                // Duration Selector
-                Text(
-                    text = if (language == AppLanguage.TURKISH) "Yayın Süresi:" else "Laufzeit:",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
+                // Duration Selector - Clean Hamburger / Dropdown & Compact Tidy Layout
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf(
-                        24 to "24s (0€)",
-                        48 to "48s (0€)",
-                        168 to "7 Gün (5€)",
-                        720 to "30 Gün (9,90€)"
-                    ).forEach { (h, label) ->
-                        FilterChip(
-                            selected = selectedDurationHours == h,
-                            onClick = { selectedDurationHours = h },
-                            label = { Text(label, fontSize = 10.5.sp) }
-                        )
+                    Text(
+                        text = if (language == AppLanguage.TURKISH) "Yayın Süresi:" else "Laufzeit:",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = when (selectedDurationHours) {
+                            24 -> if (language == AppLanguage.TURKISH) "24 Saat (Ücretsiz)" else "24 Std. (Kostenlos)"
+                            48 -> if (language == AppLanguage.TURKISH) "48 Saat (Ücretsiz)" else "48 Std. (Kostenlos)"
+                            168 -> if (language == AppLanguage.TURKISH) "7 Gün (5,00€)" else "7 Tage (5,00€)"
+                            else -> if (language == AppLanguage.TURKISH) "30 Gün (9,90€)" else "30 Tage (9,90€)"
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedDurationHours <= 48) BerlinGreen else BerlinRed
+                    )
+                }
+
+                // Compact Hamburger Menu Selector (Takes 1 clean row, perfectly structured)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { durationMenuExpanded = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Süre Menüsü",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = when (selectedDurationHours) {
+                                        24 -> if (language == AppLanguage.TURKISH) "24 Saat (0€ Ücretsiz)" else "24 Stunden (Kostenlos 0€)"
+                                        48 -> if (language == AppLanguage.TURKISH) "48 Saat (0€ Ücretsiz)" else "48 Stunden (Kostenlos 0€)"
+                                        168 -> if (language == AppLanguage.TURKISH) "7 Gün (5,00€ Sponsorlu)" else "7 Tage (5,00€ Gewerblich)"
+                                        else -> if (language == AppLanguage.TURKISH) "30 Gün (9,90€ Premium)" else "30 Tage (9,90€ Monatspaket)"
+                                    },
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = durationMenuExpanded,
+                        onDismissRequest = { durationMenuExpanded = false }
+                    ) {
+                        listOf(
+                            24 to (if (language == AppLanguage.TURKISH) "24 Saat (Ücretsiz · 0€)" else "24 Std. (Kostenlos · 0€)"),
+                            48 to (if (language == AppLanguage.TURKISH) "48 Saat (Ücretsiz · 0€)" else "48 Std. (Kostenlos · 0€)"),
+                            168 to (if (language == AppLanguage.TURKISH) "7 Gün (5,00€)" else "7 Tage (5,00€)"),
+                            720 to (if (language == AppLanguage.TURKISH) "30 Gün (9,90€)" else "30 Tage (9,90€)")
+                        ).forEach { (dur, label) ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(label, fontWeight = if (selectedDurationHours == dur) FontWeight.Bold else FontWeight.Normal)
+                                        if (selectedDurationHours == dur) {
+                                            Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = BerlinGreen, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    selectedDurationHours = dur
+                                    durationMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Compact alt alta 2x2 grid (Never wraps weirdly, neat & tidy)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedDurationHours == 24) BerlinGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedDurationHours == 24) BerlinGreen else Color.Transparent),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedDurationHours = 24 }
+                        ) {
+                            Text(
+                                text = "24s · 0€",
+                                fontSize = 11.sp,
+                                fontWeight = if (selectedDurationHours == 24) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedDurationHours == 24) BerlinGreen else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedDurationHours == 48) BerlinGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedDurationHours == 48) BerlinGreen else Color.Transparent),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedDurationHours = 48 }
+                        ) {
+                            Text(
+                                text = "48s · 0€",
+                                fontSize = 11.sp,
+                                fontWeight = if (selectedDurationHours == 48) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedDurationHours == 48) BerlinGreen else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedDurationHours == 168) BerlinRed.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedDurationHours == 168) BerlinRed else Color.Transparent),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedDurationHours = 168 }
+                        ) {
+                            Text(
+                                text = "7 Gün · 5€",
+                                fontSize = 11.sp,
+                                fontWeight = if (selectedDurationHours == 168) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedDurationHours == 168) BerlinRed else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedDurationHours == 720) BerlinRed.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedDurationHours == 720) BerlinRed else Color.Transparent),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedDurationHours = 720 }
+                        ) {
+                            Text(
+                                text = "30 Gün · 9,90€",
+                                fontSize = 11.sp,
+                                fontWeight = if (selectedDurationHours == 720) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedDurationHours == 720) BerlinRed else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
 

@@ -1,9 +1,13 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.Canvas
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,253 +19,318 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.data.model.AppLanguage
-import com.example.data.model.FoodSpot
-import com.example.data.repository.SampleData
 import com.example.ui.theme.*
 
 data class MapPinItem(
     val id: String,
     val title: String,
     val category: String,
-    val xRatio: Float,
-    val yRatio: Float,
-    val color: Color,
     val rating: Double,
-    val distance: String
+    val distance: String,
+    val address: String = "Berlin"
 )
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun KiezMapComponent(
     kiezName: String,
     language: AppLanguage,
     onSpotClick: (String) -> Unit
 ) {
-    var selectedCategory by remember { mutableStateOf("Alle") }
+    val context = LocalContext.current
+    var mapDisplayMode by remember { mutableStateOf("gmaps") } // "gmaps", "transit", "spots"
+    val actualKiez = remember(kiezName) {
+        if (kiezName.isBlank() || kiezName == "Alle" || kiezName == "Ganz Berlin" || kiezName == "Tüm Berlin") {
+            "Berlin"
+        } else {
+            kiezName
+        }
+    }
 
-    val pins = remember {
+    val pins = remember(actualKiez) {
         listOf(
-            MapPinItem("mustafas", "Mustafa's Gemüse Kebab", "Essen & Trinken", 0.28f, 0.45f, BerlinRed, 4.7, "450 m"),
-            MapPinItem("markthalle_neun", "Markthalle Neun", "Essen & Trinken", 0.65f, 0.62f, BerlinYellow, 4.6, "850 m"),
-            MapPinItem("kiez_friseur", "Kiez Friseur", "Unternehmen", 0.48f, 0.32f, BerlinBlue, 5.0, "300 m"),
-            MapPinItem("kiez_fitness", "Kiez Fitness Studio", "Unternehmen", 0.72f, 0.38f, BerlinGreen, 4.6, "550 m"),
-            MapPinItem("goerli", "Görlitzer Park", "Sehenswürdigkeiten", 0.58f, 0.75f, Color(0xFF10B981), 4.4, "600 m"),
-            MapPinItem("landwehr", "Landwehrkanal Ufer", "Sehenswürdigkeiten", 0.35f, 0.70f, BerlinBlue, 4.8, "500 m")
+            MapPinItem("mustafas", "Mustafa's Gemüse Kebab", "Essen & Trinken", 4.7, "450 m", "Mehringdamm 32, Berlin"),
+            MapPinItem("markthalle_neun", "Markthalle Neun", "Essen & Trinken", 4.6, "850 m", "Eisenbahnstraße 42/43, Berlin"),
+            MapPinItem("kiez_friseur", "Kiez Friseur & Barber", "Unternehmen", 5.0, "300 m", "Oranienstraße 185, Berlin"),
+            MapPinItem("kiez_fitness", "Kiez Fitness Studio", "Unternehmen", 4.6, "550 m", "Reichenberger Str. 124, Berlin"),
+            MapPinItem("goerli", "Görlitzer Park", "Sehenswürdigkeiten", 4.4, "600 m", "Görlitzer Park, Berlin"),
+            MapPinItem("landwehr", "Landwehrkanal Ufer", "Sehenswürdigkeiten", 4.8, "500 m", "Paul-Lincke-Ufer, Berlin")
         )
     }
 
-    var selectedPin by remember { mutableStateOf(pins[1]) }
-
-    val filteredPins = remember(selectedCategory) {
-        if (selectedCategory == "Alle") pins else pins.filter { it.category == selectedCategory }
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Filter Chips Row
-        Row(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // ÜST KONTROL BARI: Mod Seçici [ 🗺️ Google Maps | 🚇 U- & S-Bahn | 📍 Mekânlar ]
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
-            val categories = listOf("Alle", "Essen & Trinken", "Unternehmen", "Sehenswürdigkeiten")
-            categories.forEach { cat ->
-                val isSelected = selectedCategory == cat
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { selectedCategory = cat },
-                    label = {
-                        Text(
-                            text = when {
-                                language == AppLanguage.TURKISH && cat == "Alle" -> "Tümü"
-                                language == AppLanguage.TURKISH && cat == "Essen & Trinken" -> "Yeme-İçme"
-                                language == AppLanguage.TURKISH && cat == "Unternehmen" -> "İşletmeler"
-                                language == AppLanguage.TURKISH && cat == "Sehenswürdigkeiten" -> "Görülecek Yerler"
-                                else -> cat
-                            },
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            Row(modifier = Modifier.padding(3.dp)) {
+                // 1. Google Maps
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { mapDisplayMode = "gmaps" },
+                    shape = RoundedCornerShape(9.dp),
+                    color = if (mapDisplayMode == "gmaps") BerlinRed else Color.Transparent
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 7.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Map,
+                            contentDescription = null,
+                            tint = if (mapDisplayMode == "gmaps") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
                         )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = BerlinRed,
-                        selectedLabelColor = Color.White
-                    )
-                )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Google Maps",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            color = if (mapDisplayMode == "gmaps") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 2. U- & S-Bahn
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { mapDisplayMode = "transit" },
+                    shape = RoundedCornerShape(9.dp),
+                    color = if (mapDisplayMode == "transit") BerlinRed else Color.Transparent
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 7.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsSubway,
+                            contentDescription = null,
+                            tint = if (mapDisplayMode == "transit") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (language == AppLanguage.TURKISH) "U-/S-Bahn" else "U-/S-Bahn",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            color = if (mapDisplayMode == "transit") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 3. Mekânlar
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { mapDisplayMode = "spots" },
+                    shape = RoundedCornerShape(9.dp),
+                    color = if (mapDisplayMode == "spots") BerlinRed else Color.Transparent
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 7.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            tint = if (mapDisplayMode == "spots") Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (language == AppLanguage.TURKISH) "Mekânlar" else "Orte",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            color = if (mapDisplayMode == "spots") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
 
-        // Map Canvas Box
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(Color(0xFFE8ECEF))
-        ) {
-            // Draw simulated map background (River Spree/Canal, Parks, Street grid)
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-
-                // Parks / Green Zones
-                val parkPath = Path().apply {
-                    moveTo(w * 0.45f, h * 0.65f)
-                    cubicTo(w * 0.52f, h * 0.60f, w * 0.68f, h * 0.62f, w * 0.75f, h * 0.72f)
-                    cubicTo(w * 0.78f, h * 0.85f, w * 0.55f, h * 0.90f, w * 0.45f, h * 0.78f)
-                    close()
-                }
-                drawPath(parkPath, Color(0xFFCBEAD1))
-
-                // Landwehrkanal / River Spree (Blue water stream)
-                val riverPath = Path().apply {
-                    moveTo(0f, h * 0.68f)
-                    cubicTo(w * 0.3f, h * 0.72f, w * 0.6f, h * 0.55f, w, h * 0.45f)
-                }
-                drawPath(riverPath, Color(0xFFA5C9EB), style = Stroke(width = 28f))
-
-                // Street Grids (Light gray streets)
-                // Horizontals
-                drawLine(Color(0xFFFFFFFF), Offset(0f, h * 0.25f), Offset(w, h * 0.25f), strokeWidth = 14f)
-                drawLine(Color(0xFFFFFFFF), Offset(0f, h * 0.48f), Offset(w, h * 0.48f), strokeWidth = 18f)
-                drawLine(Color(0xFFFFFFFF), Offset(0f, h * 0.82f), Offset(w, h * 0.82f), strokeWidth = 12f)
-                // Verticals / Diagonals
-                drawLine(Color(0xFFFFFFFF), Offset(w * 0.22f, 0f), Offset(w * 0.22f, h), strokeWidth = 16f)
-                drawLine(Color(0xFFFFFFFF), Offset(w * 0.52f, 0f), Offset(w * 0.52f, h), strokeWidth = 16f)
-                drawLine(Color(0xFFFFFFFF), Offset(w * 0.80f, 0f), Offset(w * 0.80f, h), strokeWidth = 14f)
+        when (mapDisplayMode) {
+            "transit" -> {
+                // Berlin Toplu Taşıma Ağı
+                BerlinTransitMapComponent(
+                    language = language,
+                    modifier = Modifier.weight(1f)
+                )
             }
 
-            // Pins positioned on Map
-            filteredPins.forEach { pin ->
-                val isSelected = selectedPin.id == pin.id
-                Box(
+            "spots" -> {
+                // Kiezdeki Mekânlar Listesi
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(horizontal = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                        val posX = maxWidth * pin.xRatio
-                        val posY = maxHeight * pin.yRatio
+                    Text(
+                        text = "$actualKiez · Öne Çıkan Noktalar",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
 
-                        Box(
+                    pins.forEach { pin ->
+                        Card(
                             modifier = Modifier
-                                .offset(x = posX, y = posY)
-                                .shadow(if (isSelected) 8.dp else 3.dp, CircleShape)
-                                .clip(CircleShape)
-                                .background(if (isSelected) BerlinRed else pin.color)
-                                .size(if (isSelected) 36.dp else 28.dp)
-                                .clickable { selectedPin = pin },
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .clickable { onSpotClick(pin.id) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(2.dp)
                         ) {
-                            Icon(
-                                imageVector = when (pin.category) {
-                                    "Essen & Trinken" -> Icons.Default.Restaurant
-                                    "Unternehmen" -> Icons.Default.Storefront
-                                    else -> Icons.Default.Park
-                                },
-                                contentDescription = pin.title,
-                                tint = Color.White,
-                                modifier = Modifier.size(if (isSelected) 20.dp else 16.dp)
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = BerlinRedLight,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(Icons.Default.Place, contentDescription = null, tint = BerlinRed, modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                    Column {
+                                        Text(pin.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text("${pin.category} · ${pin.distance} · ${pin.address}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                IconButton(
+                                    onClick = {
+                                        val gmap = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(pin.title + " " + pin.address)}"))
+                                        context.startActivity(gmap)
+                                    }
+                                ) {
+                                    Icon(Icons.Default.Directions, contentDescription = "Maps", tint = Color(0xFF34A853))
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Bottom Floating Card for Selected Spot
-            Card(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .shadow(8.dp, RoundedCornerShape(16.dp))
-                    .clickable { onSpotClick(selectedPin.id) },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Row(
+            else -> {
+                // GERÇEK CANLI GOOGLE MAPS GÖRÜNÜMÜ
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .weight(1f)
                 ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = BerlinRedLight,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Place,
-                                    contentDescription = null,
-                                    tint = BerlinRed,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
+                    val mapQuery = "$actualKiez, Berlin, Germany"
+                    val embedUrl = "https://www.google.com/maps?q=${Uri.encode(mapQuery)}&z=13&output=embed"
 
-                        Column {
-                            Text(
-                                text = selectedPin.title,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = selectedPin.category,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text("•", color = Color.Gray, fontSize = 10.sp)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = "Rating",
-                                        tint = BerlinYellow,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Text(
-                                        text = "${selectedPin.rating}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                Text("•", color = Color.Gray, fontSize = 10.sp)
-                                Text(
-                                    text = selectedPin.distance,
-                                    fontSize = 12.sp,
-                                    color = BerlinRed,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                    AndroidView(
+                        factory = { ctx ->
+                            WebView(ctx).apply {
+                                settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true
+                                settings.setSupportZoom(true)
+                                settings.builtInZoomControls = true
+                                settings.displayZoomControls = false
+                                webChromeClient = WebChromeClient()
+                                webViewClient = object : WebViewClient() {}
+                                loadUrl(embedUrl)
                             }
+                        },
+                        update = { webView ->
+                            webView.loadUrl(embedUrl)
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+
+                    // ÜSTTE SABİT: DOĞRUDAN GOOGLE MAPS UYGULAMASINDA AÇ BUTONU (100% GARANTİLİ ÇALIŞIR)
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White,
+                        shadowElevation = 6.dp,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 10.dp)
+                            .clickable {
+                                val fullMapIntent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(mapQuery)}")
+                                )
+                                context.startActivity(fullMapIntent)
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Launch,
+                                contentDescription = null,
+                                tint = Color(0xFF1A73E8),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) {
+                                    "Google Maps'te Canlı Aç ($actualKiez)"
+                                } else {
+                                    "In Google Maps öffnen ($actualKiez)"
+                                },
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF202124)
+                            )
                         }
                     }
 
-                    IconButton(
-                        onClick = { onSpotClick(selectedPin.id) }
+                    // SAĞ ALT: HIZLI YOL TARİFİ (DIRECTIONS) BUTONU
+                    FloatingActionButton(
+                        onClick = {
+                            val dirIntent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${Uri.encode(mapQuery)}")
+                            )
+                            context.startActivity(dirIntent)
+                        },
+                        containerColor = BerlinRed,
+                        contentColor = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(14.dp)
+                            .size(46.dp),
+                        shape = CircleShape
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowForwardIos,
-                            contentDescription = "Details",
-                            tint = BerlinRed,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Icon(imageVector = Icons.Default.Navigation, contentDescription = "Yol Tarifi", modifier = Modifier.size(22.dp))
                     }
                 }
             }
