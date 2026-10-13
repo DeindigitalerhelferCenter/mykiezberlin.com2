@@ -23,7 +23,8 @@ import com.example.ui.theme.BerlinRed
 @Composable
 fun MyKiezLogoView(
     modifier: Modifier = Modifier,
-    height: Int = 42,
+    height: Int = 44,
+    showText: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
     Row(
@@ -42,7 +43,8 @@ fun MyKiezLogoView(
                 .clip(RoundedCornerShape(8.dp))
         )
 
-        Column {
+        if (showText) {
+            Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "My ",
@@ -79,4 +81,5 @@ fun MyKiezLogoView(
             )
         }
     }
+}
 }

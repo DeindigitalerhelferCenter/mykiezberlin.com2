@@ -55,8 +55,9 @@ fun EventsScreen(
     val allEvents: List<KiezEvent> = remember(customEvents, activeFilter) {
         val merged: List<KiezEvent> = customEvents + SampleData.events
         when (activeFilter) {
-            "Heute" -> merged.filter { it.dayLabel.equals("HEUTE", ignoreCase = true) }
+            "Heute" -> merged.filter { it.dayLabel.equals("HEUTE", ignoreCase = true) || it.dayLabel.equals("OKT", ignoreCase = true) }
             "Dieses Wochenende" -> merged.filter { it.dayLabel.contains("SA", ignoreCase = true) || it.dayLabel.contains("SO", ignoreCase = true) }
+            "Diesen Monat" -> merged.filter { it.monthLabel.contains("OKT", ignoreCase = true) || it.dayLabel.contains("OKT", ignoreCase = true) }
             "Kostenlos" -> merged.filter { it.isFree }
             else -> merged
         }
@@ -170,26 +171,51 @@ fun EventsScreen(
                 modifier = Modifier.fillMaxWidth().wrapContentHeight()
             ) {
                 Column {
-                    Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
-                        RealKiezImage(
-                            drawableId = KiezPhotoHelper.getEventDrawable(event.id),
-                            contentDescription = event.title,
-                            showBottomGradient = true,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        IconButton(
-                            onClick = { selectedEvent = null },
+                    // Header Bar (No stock photos)
+                    Surface(
+                        color = BerlinRed.copy(alpha = 0.08f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
-                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                                .size(32.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(18.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    color = BerlinRed,
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = "🏛️ Offiziell: berlin.de",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                                Text(
+                                    text = event.category,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            IconButton(
+                                onClick = { selectedEvent = null },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
+                            }
                         }
                     }
 
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(18.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -205,6 +231,7 @@ fun EventsScreen(
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Surface(color = BerlinRedLight, shape = RoundedCornerShape(6.dp)) {
                                 Text(
@@ -229,22 +256,45 @@ fun EventsScreen(
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(imageVector = Icons.Default.Place, contentDescription = null, tint = BerlinRed, modifier = Modifier.size(15.dp))
-                            Text(text = "${event.kiezName}, Berlin", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(text = "${event.kiezName} · ${event.locationAddress}", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(text = event.description, fontSize = 13.sp, lineHeight = 19.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Quelle / Veranstalter: ${event.organizer}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        )
+
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Official Website Link Button (Prominent)
+                        Button(
+                            onClick = {
+                                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(event.officialUrl))
+                                context.startActivity(browserIntent)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = BerlinRed)
+                        ) {
+                            Icon(imageVector = Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Offizielle Seite öffnen (${event.officialUrl.replace("https://www.", "").replace("/", "")}) ↗", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
+                            OutlinedButton(
                                 onClick = {
                                     Toast.makeText(context, "Event '${event.title}' in Kalender vorgemerkt! 📅", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = BerlinRed)
+                                shape = RoundedCornerShape(10.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Event, contentDescription = null, modifier = Modifier.size(15.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -400,94 +450,147 @@ fun EventCard(
     onToggleFavorite: () -> Unit,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
-        Column {
-            // Real photo header banner
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(115.dp)
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header Row: Badges
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                RealKiezImage(
-                    drawableId = KiezPhotoHelper.getEventDrawable(event.id),
-                    contentDescription = event.title,
-                    showBottomGradient = true,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Surface(
-                    color = BerlinRed,
-                    shape = RoundedCornerShape(bottomEnd = 10.dp),
-                    modifier = Modifier.align(Alignment.TopStart)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "${event.dateNum} ${event.monthLabel} · ${event.dayLabel}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
+                    Surface(
+                        color = BerlinRed.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(6.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BerlinRed.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            text = "🏛️ berlin.de Offiziell",
+                            color = BerlinRed,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = "${event.dateNum} ${event.monthLabel} · ${event.dayLabel}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
+                    }
                 }
 
                 Surface(
-                    color = if (event.isFree) BerlinGreen else Color.Black.copy(alpha = 0.7f),
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(6.dp)
+                    color = if (event.isFree) BerlinGreenLight else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
                         text = event.price,
-                        color = Color.White,
+                        color = if (event.isFree) BerlinGreen else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        fontSize = 10.5.sp,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                     )
                 }
             }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Title
+            Text(
+                text = event.title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 21.sp
+            )
+
+            // Category & Kiez
+            Spacer(modifier = Modifier.height(4.dp))
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = event.title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                Text(
+                    text = event.category,
+                    fontSize = 11.5.sp,
+                    color = BerlinRed,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text("•", color = Color.Gray, fontSize = 10.sp)
+                Icon(imageVector = Icons.Default.Place, contentDescription = null, tint = BerlinRed, modifier = Modifier.size(13.dp))
+                Text(
+                    text = "${event.kiezName} (${event.locationAddress})",
+                    fontSize = 11.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
 
-                    Spacer(modifier = Modifier.height(3.dp))
+            // Description
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = event.description,
+                fontSize = 12.5.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 17.sp,
+                maxLines = 2
+            )
 
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
-                        Text(text = event.time, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("•", color = Color.Gray, fontSize = 10.sp)
-                        Icon(imageVector = Icons.Default.Place, contentDescription = null, tint = BerlinRed, modifier = Modifier.size(12.dp))
-                        Text(text = event.kiezName, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Action Buttons Row: Direct Link to official page
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = {
+                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(event.officialUrl))
+                        context.startActivity(browserIntent)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BerlinRed),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Offizielle Seite (berlin.de) ↗", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                 }
 
-                IconButton(
-                    onClick = onToggleFavorite,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorit",
-                        tint = if (isFavorite) BerlinRed else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorit",
+                            tint = if (isFavorite) BerlinRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
                 }
             }
         }

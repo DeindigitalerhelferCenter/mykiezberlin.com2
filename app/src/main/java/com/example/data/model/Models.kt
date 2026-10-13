@@ -70,9 +70,10 @@ data class KiezEvent(
     val isFree: Boolean,
     val category: String,
     val description: String,
-    val imageUrl: String,
+    val imageUrl: String = "",
     val locationAddress: String = "Berlin",
-    val organizer: String = "Kiez Community"
+    val organizer: String = "Kiez Community",
+    val officialUrl: String = "https://www.berlin.de/events/volksfeste/"
 )
 
 data class LocalBusiness(
@@ -242,3 +243,136 @@ data class AddOnOption(
     val priceNum: Double,
     val description: String
 )
+
+enum class BulletinFolder(
+    val key: String,
+    val titleDe: String,
+    val titleTr: String,
+    val icon: String,
+    val officialDomain: String,
+    val descDe: String = "",
+    val descTr: String = "",
+    val primaryUrl: String = ""
+) {
+    ALL(
+        key = "all",
+        titleDe = "Alle Meldungen",
+        titleTr = "Tüm Bültenler",
+        icon = "📁",
+        officialDomain = "berlin.de & Partner",
+        descDe = "Stündlich aktualisierte Übersicht aller behördlichen Meldungen aus Berlin.",
+        descTr = "Berlin resmi kurumlarından saat başı güncellenen tüm canlı bülten akışı.",
+        primaryUrl = "https://www.berlin.de/"
+    ),
+    POLIZEI(
+        key = "polizei",
+        titleDe = "Polizei Berlin",
+        titleTr = "Polizei Berlin (Güvenlik)",
+        icon = "👮",
+        officialDomain = "berlin.de/polizei",
+        descDe = "Offizielle Polizeimeldungen, Verkehrskontrollen, Zeugenaufrufe und Internetwache-Mitteilungen.",
+        descTr = "Berlin Emniyet Müdürlüğü resmi polis bültenleri, asayiş olayları, karakol duyuruları ve online ihbar servisi.",
+        primaryUrl = "https://www.berlin.de/polizei/"
+    ),
+    FEUERWEHR(
+        key = "feuerwehr",
+        titleDe = "Berliner Feuerwehr",
+        titleTr = "Berliner Feuerwehr (İtfaiye)",
+        icon = "🚒",
+        officialDomain = "berliner-feuerwehr.de",
+        descDe = "Einsatzberichte, Technische Hilfeleistungen, Rettungsdienst und Brandbekämpfung in Berlin.",
+        descTr = "Berlin İtfaiyesi resmi yangın, acil yardım, kaza ve teknik kurtarma operasyonları bülteni.",
+        primaryUrl = "https://www.berliner-feuerwehr.de/"
+    ),
+    BVG(
+        key = "bvg",
+        titleDe = "BVG Nahverkehr (U-Bahn, Tram, Bus)",
+        titleTr = "BVG Ulaşım (U-Bahn, Tram, Otobüs)",
+        icon = "🚇",
+        officialDomain = "bvg.de",
+        descDe = "Echtzeit-Störungsmeldungen, Baustellen, Ersatzverkehre und Taktänderungen im Berliner Nahverkehr.",
+        descTr = "Berliner Verkehrsbetriebe canlı sefer durumları, gecikme, sinyal arızası ve bakım duyuruları.",
+        primaryUrl = "https://www.bvg.de/de/verbindungen/stoerungsmeldungen"
+    ),
+    SBAHN(
+        key = "sbahn",
+        titleDe = "S-Bahn Berlin (Deutsche Bahn)",
+        titleTr = "S-Bahn Berlin (Banliyö Trenleri)",
+        icon = "🚆",
+        officialDomain = "sbahn.berlin",
+        descDe = "Streckenunterbrechungen, Bauarbeiten, Weicheninspektionen und Ringbahn-Statusmeldungen.",
+        descTr = "Deutsche Bahn S-Bahn Berlin hat inşaatları, teknik arıza raporları ve canlı banliyö sefer durumları.",
+        primaryUrl = "https://sbahn.berlin/fahren/bauen-stoerung/"
+    ),
+    SENAT_POLITIK(
+        key = "politik",
+        titleDe = "Berliner Senat & Politik",
+        titleTr = "Berlin Senatosu & Politika",
+        icon = "🏛️",
+        officialDomain = "berlin.de/rbmskzl",
+        descDe = "Pressemitteilungen der Senatskanzlei, Beschlüsse des Senats und stadtpolitische Initiativen.",
+        descTr = "Berlin Eyalet Hükümeti (Rotes Rathaus), Senato kararları, belediye politikaları ve resmi basın bildirileri.",
+        primaryUrl = "https://www.berlin.de/rbmskzl/aktuelles/pressemitteilungen/"
+    ),
+    KULTUR_EVENTS(
+        key = "kultur",
+        titleDe = "Berlin.de Volksfeste & Kultur",
+        titleTr = "Berlin.de Festivaller & Kültür",
+        icon = "🎭",
+        officialDomain = "berlin.de/events/volksfeste",
+        descDe = "Offizielle Kiezfeste, Jahrmärkte, Open-Air-Kulturveranstaltungen und Ticket-Portal des Landes Berlin.",
+        descTr = "Berlin resmi şehir rehberi sokak festivalleri, mahalle panayırları (Kiez-Feste), açık hava konserleri ve biletli etkinlikler.",
+        primaryUrl = "https://www.berlin.de/events/volksfeste/"
+    ),
+    BUERGERAMT(
+        key = "buergeramt",
+        titleDe = "Bürgeramt & Bürgerservice",
+        titleTr = "Bürgeramt & Resmi Hizmetler",
+        icon = "🏢",
+        officialDomain = "service.berlin.de",
+        descDe = "Terminvergaben, Personalausweis-/Passangelegenheiten, Meldebescheinigungen und Standorte.",
+        descTr = "Berlin Hizmet Portalı, ikametgah (Anmeldung), pasaport, kimlik ve belediye hizmet merkezleri çalışma/randevu duyuruları.",
+        primaryUrl = "https://service.berlin.de/standorte/buergeraemter/"
+    ),
+    // Aliases for compatibility
+    TRANSIT(
+        key = "transit",
+        titleDe = "BVG & S-Bahn",
+        titleTr = "Toplu Taşıma & Trafik",
+        icon = "🚆",
+        officialDomain = "bvg.de & sbahn.berlin",
+        descDe = "BVG und S-Bahn Berlin Nahverkehrsinformationen.",
+        descTr = "BVG ve S-Bahn Berlin toplu taşıma duyuruları.",
+        primaryUrl = "https://www.bvg.de/"
+    ),
+    POLITIK_STADT(
+        key = "politik_stadt",
+        titleDe = "Senat & Stadt Berlin",
+        titleTr = "Şehir, Politika & Senato",
+        icon = "🏛️",
+        officialDomain = "berlin.de",
+        descDe = "Senat von Berlin Pressemitteilungen.",
+        descTr = "Berlin Senatosu duyuruları.",
+        primaryUrl = "https://www.berlin.de/"
+    )
+}
+
+data class BerlinLiveBulletin(
+    val id: String,
+    val folder: BulletinFolder,
+    val title: String,
+    val summary: String,
+    val kiezName: String,
+    val officialSource: String,
+    val officialUrl: String,
+    val timestampMillis: Long,
+    val timeAgoFormatted: String,
+    val isUrgent: Boolean = false,
+    val titleTr: String = title,
+    val summaryTr: String = summary,
+    val hourBadge: String = ""
+) {
+    fun localizedTitle(lang: AppLanguage): String = if (lang == AppLanguage.TURKISH) titleTr else title
+    fun localizedSummary(lang: AppLanguage): String = if (lang == AppLanguage.TURKISH) summaryTr else summary
+}
+

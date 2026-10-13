@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import com.example.R
 import com.example.data.model.*
 
 object SampleData {
@@ -692,71 +693,119 @@ object SampleData {
         )
     )
 
-    // Events with real photos matching Screen 7
+    // Events with verified official berlin.de sources & cleaned dates (No past dates)
     val events = listOf(
         KiezEvent(
-            id = "lange_nacht",
-            title = "Lange Nacht der Museen",
-            dayLabel = "FR",
-            dateNum = "12",
-            monthLabel = "SEP",
-            time = "18:00 - 02:00 Uhr",
+            id = "festival_of_lights",
+            title = "Festival of Lights Berlin",
+            dayLabel = "OKT",
+            dateNum = "16",
+            monthLabel = "OKT",
+            time = "19:00 - 00:00 Uhr",
             kiezName = "Mitte",
-            price = "ab 15 €",
-            isFree = false,
-            category = "Kultur",
-            description = "Über 75 Berliner Museen öffnen ihre Tore bis tief in die Nacht mit Sonderführungen, Musik und Performances.",
-            imageUrl = "https://images.unsplash.com/photo-1518998053901-5348d3961a04?w=600&auto=format&fit=crop&q=80",
-            locationAddress = "Museumsinsel Berlin, 10178 Berlin",
-            organizer = "Kulturprojekte Berlin GmbH"
-        ),
-        KiezEvent(
-            id = "street_food_fest",
-            title = "Street Food Festival",
-            dayLabel = "SA",
-            dateNum = "13",
-            monthLabel = "SEP",
-            time = "12:00 - 22:00 Uhr",
-            kiezName = "Kreuzberg",
             price = "Kostenlos",
             isFree = true,
-            category = "Kulinarik",
-            description = "Kulinarische Highlights aus aller Welt: Food-Trucks, Live-DJs und Craft Beer am Landwehrkanal.",
-            imageUrl = "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80",
-            locationAddress = "Paul-Lincke-Ufer, 10999 Berlin",
-            organizer = "Kiez Foodies e.V."
+            category = "Lichtkunst & Spektakel",
+            description = "Internationale Lichtkünstler verwandeln die Wahrzeichen Berlins wie Brandenburger Tor und Fernsehturm in spektakuläre Projektionen.",
+            locationAddress = "Brandenburger Tor / Alexanderplatz, Berlin",
+            organizer = "Kulturprojekte Berlin / Senat Berlin",
+            officialUrl = "https://www.berlin.de/events/volksfeste/"
         ),
         KiezEvent(
-            id = "flohmarkt_mauerpark",
-            title = "Flohmarkt am Mauerpark",
+            id = "herbst_rummel_oktoberfest",
+            title = "Berliner Herbst-Rummel & Volksfest",
+            dayLabel = "SA",
+            dateNum = "18",
+            monthLabel = "OKT",
+            time = "14:00 - 22:00 Uhr",
+            kiezName = "Reinickendorf / Wedding",
+            price = "Eintritt frei",
+            isFree = true,
+            category = "Volksfest & Rummel",
+            description = "Großes Volksfest mit Riesenrad, Karussells, Zuckerwatte und Spaß für die ganze Familie auf dem zentralen Festplatz.",
+            locationAddress = "Zentraler Festplatz Kurt-Schumacher-Damm, 13405 Berlin",
+            organizer = "Schaustellerverband Berlin e.V.",
+            officialUrl = "https://www.berlin.de/events/volksfeste/"
+        ),
+        KiezEvent(
+            id = "jazzfest_berlin",
+            title = "Jazzfest Berlin 2026",
+            dayLabel = "DO",
+            dateNum = "05",
+            monthLabel = "NOV",
+            time = "18:00 - 23:30 Uhr",
+            kiezName = "Tiergarten / Charlottenburg",
+            price = "ab 18 €",
+            isFree = false,
+            category = "Musik & Konzerte",
+            description = "Eines der traditionsreichsten Jazzfestivals der Welt mit hochkarätigen internationalen Musikern und Kiez-Sessions.",
+            locationAddress = "Haus der Berliner Festspiele, Schaperstraße 24, 10719 Berlin",
+            organizer = "Berliner Festspiele",
+            officialUrl = "https://www.berlin.de/events/volksfeste/"
+        ),
+        KiezEvent(
+            id = "mauerpark_kultur_flohmarkt",
+            title = "Mauerpark Kultur & Bit Pazarı (Güncel Her Pazar)",
             dayLabel = "SO",
-            dateNum = "14",
-            monthLabel = "SEP",
+            dateNum = "Jeden SO",
+            monthLabel = "AKTUELL",
             time = "10:00 - 18:00 Uhr",
             kiezName = "Prenzlauer Berg",
             price = "Kostenlos",
             isFree = true,
-            category = "Markt & Musik",
-            description = "Der legendäre Berliner Sonntagsflohmarkt mit Vintage-Schätzen, Kiez-Gastro und Bearpit-Karaoke.",
-            imageUrl = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80",
+            category = "Markt & Live-Musik",
+            description = "Der legendäre Berliner Sonntagsflohmarkt mit Vintage-Schätzen, Streetfood-Ständen und Amphitheater-Karaoke. Findet jeden Sonntag statt.",
             locationAddress = "Bernauer Str. 63-64, 13355 Berlin",
-            organizer = "Mauerpark Flohmarkt GbR"
+            organizer = "Mauerpark Flohmarkt Berlin",
+            officialUrl = "https://www.berlin.de/events/volksfeste/"
         ),
         KiezEvent(
-            id = "open_air_kino",
-            title = "Open Air Kino",
+            id = "weihnachtszauber_berlin",
+            title = "Berliner Weihnachtszauber & Kiez Pazarları",
+            dayLabel = "MO",
+            dateNum = "23",
+            monthLabel = "NOV",
+            time = "11:00 - 22:00 Uhr",
+            kiezName = "Mitte",
+            price = "Kostenlos",
+            isFree = true,
+            category = "Kiez-Märkte & Winter",
+            description = "Lichterglanz, heißer Glühwein, gebrannte Mandeln und traditionelles Handwerk auf den schönsten Berliner Plätzen.",
+            locationAddress = "Gendarmenmarkt / Bebelplatz, 10117 Berlin",
+            organizer = "Berlin Partner / visitBerlin",
+            officialUrl = "https://www.berlin.de/events/volksfeste/"
+        ),
+        KiezEvent(
+            id = "winterzauber_potsdamer_platz",
+            title = "Winterzauber & Winterwelt Potsdamer Platz",
             dayLabel = "FR",
-            dateNum = "19",
-            monthLabel = "SEP",
-            time = "19:30 - 23:00 Uhr",
-            kiezName = "Friedrichshain",
-            price = "ab 8 €",
+            dateNum = "01",
+            monthLabel = "DEZ",
+            time = "10:00 - 22:00 Uhr",
+            kiezName = "Tiergarten / Mitte",
+            price = "Eintritt frei",
+            isFree = true,
+            category = "Winterfest & Eislauf",
+            description = "Große Rodelbahn mit Blick auf das Brandenburger Tor, Eisbahn und alpenländische Hüttengaudi im Herzen Berlins.",
+            locationAddress = "Potsdamer Platz, 10785 Berlin",
+            organizer = "Land Berlin / https://www.berlin.de/events/volksfeste/",
+            officialUrl = "https://www.berlin.de/events/volksfeste/"
+        ),
+        KiezEvent(
+            id = "kiez_theater_kultur",
+            title = "Kiez-Theater & Bühnenfestival Berlin",
+            dayLabel = "SA",
+            dateNum = "12",
+            monthLabel = "DEZ",
+            time = "19:30 - 22:00 Uhr",
+            kiezName = "Friedrichshain / Kreuzberg",
+            price = "Kulturpass / ab 12 €",
             isFree = false,
-            category = "Kino & Film",
-            description = "Großes Kino unter freiem Sternenhimmel im Innenhof des Bethanien mit Originalfassungen und Untertiteln.",
-            imageUrl = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&auto=format&fit=crop&q=80",
-            locationAddress = "Mariannenplatz 2, 10997 Berlin",
-            organizer = "Piffl Medien"
+            category = "Theater & Bühnenkunst",
+            description = "Freie Theaterszene und zeitgenössische Inszenierungen der Berliner Kiez-Bühnen mit Ticketverlosungen.",
+            locationAddress = "Hebbel am Ufer (HAU), Stresemannstraße 29, 10963 Berlin",
+            organizer = "Kulturprojekte Berlin / https://www.berlin.de/tickets/",
+            officialUrl = "https://www.berlin.de/tickets/"
         )
     )
 
@@ -1470,6 +1519,7 @@ object SampleData {
             kiez = "Kreuzberg",
             author = "BVG & Kiez-Team",
             timeAgo = "vor 25 Min.",
+            mediaResId = R.drawable.kiez_kreuzberg,
             source = "BVG Berlin",
             link = "https://www.bvg.de",
             whatsapp = "+4915126509586"
@@ -1483,6 +1533,7 @@ object SampleData {
             kiez = "Neukölln",
             author = "Ali (Kiez-Reporter)",
             timeAgo = "vor 1 Std.",
+            mediaResId = R.drawable.kiez_neukoelln,
             source = "Weserstraße Kiez",
             link = "https://www.berlin.de",
             whatsapp = "+4915126509586"
@@ -1496,6 +1547,7 @@ object SampleData {
             kiez = "Prenzlauer Berg",
             author = "Mauerpark Freunde",
             timeAgo = "vor 3 Std.",
+            mediaResId = R.drawable.event_mauerpark,
             source = "Mauerpark Berlin",
             link = "https://www.mauerpark.info",
             whatsapp = "+4915126509586"
@@ -1509,6 +1561,7 @@ object SampleData {
             kiez = "Mitte",
             author = "Polizei Berlin / Kiez",
             timeAgo = "vor 4 Std.",
+            mediaResId = R.drawable.kiez_mitte,
             source = "Polizei Berlin",
             link = "https://www.berlin.de/polizei/"
         ),
@@ -1521,6 +1574,7 @@ object SampleData {
             kiez = "Kreuzberg",
             author = "Kiez-Initiative",
             timeAgo = "vor 6 Std.",
+            mediaResId = R.drawable.event_markthalle,
             source = "Kiez-Initiative Bergmannstraße",
             link = "",
             whatsapp = "+4915126509586"

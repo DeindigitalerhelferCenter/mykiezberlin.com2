@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +37,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import android.media.MediaMetadataRetriever
+import android.widget.VideoView
+import android.widget.FrameLayout
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.R
 import com.example.data.model.AppLanguage
 import com.example.data.model.KiezStory
@@ -48,7 +53,8 @@ fun KiezStoriesBar(
     language: AppLanguage,
     onStoryClick: (KiezStory) -> Unit,
     onAddStoryClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onStoryClickWithList: ((KiezStory, List<KiezStory>, Int) -> Unit)? = null
 ) {
     // Only display approved stories in the public bar
     val visibleStories = stories.filter { it.status == "approved" }
@@ -119,11 +125,17 @@ fun KiezStoriesBar(
                 }
             }
 
-            // Visible approved stories
-            items(visibleStories) { story ->
+            // Visible approved stories with sequential index support
+            itemsIndexed(visibleStories) { index, story ->
                 StoryAvatarItem(
                     story = story,
-                    onClick = { onStoryClick(story) }
+                    onClick = {
+                        if (onStoryClickWithList != null) {
+                            onStoryClickWithList(story, visibleStories, index)
+                        } else {
+                            onStoryClick(story)
+                        }
+                    }
                 )
             }
         }
@@ -171,12 +183,13 @@ fun StoryAvatarItem(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // Official My Kiez Berlin logo badge instead of bare letters
+                // Real landmark photo for the Kiez
+                val fallbackRes = KiezPhotoHelper.getKiezDrawable(story.kiez)
                 Image(
-                    painter = painterResource(id = R.drawable.ic_mykiez_logo),
-                    contentDescription = "Logo",
-                    modifier = Modifier.fillMaxSize().padding(4.dp),
-                    contentScale = ContentScale.Fit
+                    painter = painterResource(id = fallbackRes),
+                    contentDescription = story.headline,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
             }
         }
@@ -197,22 +210,67 @@ fun StoryViewerDialog(
     language: AppLanguage,
     onClose: () -> Unit
 ) {
-    val context = LocalContext.current
-    var progress by remember { mutableFloatStateOf(0f) }
-    var showFullTextDialog by remember { mutableStateOf(false) }
+    StoryViewerDialog(
+        stories = listOf(story),
+        initialIndex = 0,
+        language = language,
+        onClose = onClose
+    )
+}
 
-    LaunchedEffect(story.id, showFullTextDialog) {
-        if (!showFullTextDialog) {
-            val totalMs = if (story.isVideo) 15000L else 8000L
+@Composable
+fun StoryViewerDialog(
+    stories: List<KiezStory>,
+    initialIndex: Int = 0,
+    language: AppLanguage,
+    onClose: () -> Unit
+) {
+    if (stories.isEmpty()) return
+    var currentIndex by remember(initialIndex, stories) {
+        mutableIntStateOf(initialIndex.coerceIn(0, (stories.size - 1).coerceAtLeast(0)))
+    }
+    val story = stories.getOrElse(currentIndex) { stories.first() }
+    val context = LocalContext.current
+    var progress by remember(currentIndex) { mutableFloatStateOf(0f) }
+    var showFullTextDialog by remember { mutableStateOf(false) }
+    var isImageZoomed by remember { mutableStateOf(false) }
+
+    // Auto advancement timer
+    LaunchedEffect(currentIndex, showFullTextDialog, isImageZoomed) {
+        if (!showFullTextDialog && !isImageZoomed) {
+            val totalMs = if (story.isVideo) 25000L else 7500L
             val intervalMs = 50L
             val step = intervalMs.toFloat() / totalMs.toFloat()
-            while (progress < 1f && !showFullTextDialog) {
+            while (progress < 1f && !showFullTextDialog && !isImageZoomed) {
                 kotlinx.coroutines.delay(intervalMs)
                 progress += step
             }
-            if (!showFullTextDialog && progress >= 1f) {
-                onClose()
+            if (!showFullTextDialog && !isImageZoomed && progress >= 1f) {
+                if (currentIndex < stories.size - 1) {
+                    currentIndex++
+                    progress = 0f
+                } else {
+                    onClose()
+                }
             }
+        }
+    }
+
+    val onNextStory = {
+        if (currentIndex < stories.size - 1) {
+            currentIndex++
+            progress = 0f
+        } else {
+            onClose()
+        }
+    }
+
+    val onPrevStory = {
+        if (currentIndex > 0) {
+            currentIndex--
+            progress = 0f
+        } else {
+            progress = 0f
         }
     }
 
@@ -238,21 +296,36 @@ fun StoryViewerDialog(
                     .fillMaxSize()
                     .systemBarsPadding()
             ) {
-                // Top: Progress bar, Profile header, Close Button
+                // Top: Multi-segment Progress bars, Profile header, Close Button
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    LinearProgressIndicator(
-                        progress = { progress },
+                    // Instagram / WhatsApp style segment progress indicators
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(2.dp)),
-                        color = Color.White,
-                        trackColor = Color.White.copy(alpha = 0.3f),
-                    )
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        stories.forEachIndexed { idx, _ ->
+                            val segProgress = when {
+                                idx < currentIndex -> 1f
+                                idx == currentIndex -> progress
+                                else -> 0f
+                            }
+                            LinearProgressIndicator(
+                                progress = { segProgress },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(3.dp)
+                                    .clip(RoundedCornerShape(2.dp)),
+                                color = Color.White,
+                                trackColor = Color.White.copy(alpha = 0.35f),
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -280,7 +353,7 @@ fun StoryViewerDialog(
                                             color = BerlinRed
                                         ) {
                                             Text(
-                                                text = "VIDEO (bis 1 Min.)",
+                                                text = if (language == AppLanguage.TURKISH) "VİDEO (Oynatılıyor)" else if (language == AppLanguage.ENGLISH) "VIDEO (Playing)" else "VIDEO (Läuft)",
                                                 color = Color.White,
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -290,7 +363,7 @@ fun StoryViewerDialog(
                                     }
                                 }
                                 Text(
-                                    text = "${story.timeAgo} · ${story.durationHours}h",
+                                    text = "${story.timeAgo} · ${story.durationHours}h · ${currentIndex + 1}/${stories.size}",
                                     color = Color.White.copy(alpha = 0.75f),
                                     fontSize = 11.sp
                                 )
@@ -312,7 +385,7 @@ fun StoryViewerDialog(
                     }
                 }
 
-                // Bild-Container (groß, sauber, unüberlagert)
+                // Bild-Container (groß, sauber, unüberlagert) mit Tap-to-Skip Navigation
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -321,70 +394,98 @@ fun StoryViewerDialog(
                         .background(Color.Black),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (story.mediaUri != null) {
+                    if (story.isVideo && story.mediaUri != null) {
+                        // Real video playback with VideoView
+                        AndroidView(
+                            factory = { ctx ->
+                                VideoView(ctx).apply {
+                                    layoutParams = FrameLayout.LayoutParams(
+                                        FrameLayout.LayoutParams.MATCH_PARENT,
+                                        FrameLayout.LayoutParams.MATCH_PARENT
+                                    )
+                                    setVideoURI(Uri.parse(story.mediaUri))
+                                    setOnPreparedListener { mp ->
+                                        mp.isLooping = true
+                                        mp.start()
+                                    }
+                                    setOnErrorListener { _, _, _ ->
+                                        true
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else if (story.mediaUri != null) {
                         AsyncImage(
                             model = story.mediaUri,
                             contentDescription = story.headline,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { isImageZoomed = !isImageZoomed },
                             contentScale = ContentScale.Fit
                         )
                     } else if (story.mediaResId != null) {
                         Image(
                             painter = painterResource(id = story.mediaResId),
                             contentDescription = story.headline,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { isImageZoomed = !isImageZoomed },
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        // Text-Story Background (Ortada logo YOK, temiz ve odaklı metin)
-                        Box(
+                        // Real landmark visual photo fallback for text stories so they are never plain/empty!
+                        val fallbackRes = KiezPhotoHelper.getKiezDrawable(story.kiez)
+                        Image(
+                            painter = painterResource(id = fallbackRes),
+                            contentDescription = story.headline,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0xFF18191A)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(28.dp)
-                            ) {
-                                Text(
-                                    text = story.headline,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 20.sp,
-                                    textAlign = TextAlign.Center,
-                                    lineHeight = 28.sp
-                                )
-                            }
-                        }
+                                .clickable { isImageZoomed = !isImageZoomed },
+                            contentScale = ContentScale.Fit
+                        )
                     }
 
-                    // 5. GÖREV: SAĞ KÖŞEDE HER ZAMAN SABİT RESMİ LOGO DAMGASI (Hem resim hem metin üzerinde sabit)
+                    // Left & Right Touch Tap Areas for Previous / Next Story Navigation
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(0.25f)
+                                .fillMaxHeight()
+                                .clickable(
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null
+                                ) { onPrevStory() }
+                        )
+                        Spacer(modifier = Modifier.weight(0.5f))
+                        Box(
+                            modifier = Modifier
+                                .weight(0.25f)
+                                .fillMaxHeight()
+                                .clickable(
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null
+                                ) { onNextStory() }
+                        )
+                    }
+
+                    // SAĞ ÜSTTEKİ SADE LOGO (YAZISIZ, BÜYÜK VE BELİRGİN)
                     Surface(
-                        shape = RoundedCornerShape(bottomStart = 10.dp),
-                        color = Color.Black.copy(alpha = 0.72f),
+                        shape = RoundedCornerShape(bottomStart = 12.dp),
+                        color = Color.Black.copy(alpha = 0.65f),
                         modifier = Modifier.align(Alignment.TopEnd)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.mykiez_logo),
-                                contentDescription = "My Kiez Berlin Logo",
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Text(
-                                text = "My Kiez Berlin",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_mykiez_logo),
+                            contentDescription = "My Kiez Logo",
+                            modifier = Modifier
+                                .size(42.dp)
+                                .padding(5.dp),
+                            contentScale = ContentScale.Fit
+                        )
                     }
 
-                    // Watermark Preview Badge (Damga) auf Bild unten rechts
+                    // Watermark Preview Badge auf Bild unten rechts
                     Surface(
                         shape = RoundedCornerShape(topStart = 8.dp),
                         color = Color.Black.copy(alpha = 0.75f),
@@ -410,7 +511,18 @@ fun StoryViewerDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // Zoom hint overlay for user convenience
+                if (!story.isVideo && (story.mediaUri != null || story.mediaResId != null)) {
+                    Text(
+                        text = if (language == AppLanguage.TURKISH) "🔍 Büyütmek için resme dokunun" else if (language == AppLanguage.ENGLISH) "🔍 Tap image to zoom full screen" else "🔍 Antippen für Vollbild",
+                        color = Color.White.copy(alpha = 0.65f),
+                        fontSize = 10.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // 6. GÖREV: YUKARI KAYDIRILMIŞ ERGONOMİK AKSİYON ALANI (Geniş boşluk, tam görünürlük)
                 Surface(
@@ -600,6 +712,75 @@ fun StoryViewerDialog(
         }
     }
 
+    // Lightbox / Tam Ekran Büyütme (Resme bir kez tıklayınca gerçek büyüklükte açılır, tekrar tıklayınca veya X'e basınca geri döner)
+    if (isImageZoomed) {
+        Dialog(
+            onDismissRequest = { isImageZoomed = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.95f))
+                    .clickable { isImageZoomed = false },
+                contentAlignment = Alignment.Center
+            ) {
+                if (story.mediaUri != null) {
+                    AsyncImage(
+                        model = story.mediaUri,
+                        contentDescription = "Zoomed",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                } else if (story.mediaResId != null) {
+                    Image(
+                        painter = painterResource(id = story.mediaResId),
+                        contentDescription = "Zoomed",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                // Close Button Top Right
+                IconButton(
+                    onClick = { isImageZoomed = false },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(24.dp)
+                        .size(44.dp)
+                        .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Schließen",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                // Hint
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.Black.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 36.dp)
+                ) {
+                    Text(
+                        text = if (language == AppLanguage.TURKISH) "Kapatmak için ekrana dokunun" else if (language == AppLanguage.ENGLISH) "Tap anywhere to close" else "Zum Schließen tippen",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+
     // 7. GÖREV: POPUP - Kaynak yoksa veya tıklandığında direkt resim ve altındaki metin çıkar!
     if (showFullTextDialog) {
         Dialog(onDismissRequest = { showFullTextDialog = false }) {
@@ -638,14 +819,15 @@ fun StoryViewerDialog(
                         }
                     }
 
-                    // 7. GÖREV: Direkt Resim ve altındaki metin çıkmalı!
+                    // 7. GÖREV: Direkt Resim ve altındaki metin çıkmalı! (Resme tıklayınca büyür!)
                     if (story.mediaUri != null) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp)
+                                .height(200.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color.Black)
+                                .clickable { isImageZoomed = true }
                         ) {
                             AsyncImage(
                                 model = story.mediaUri,
@@ -658,12 +840,30 @@ fun StoryViewerDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp)
+                                .height(200.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color.Black)
+                                .clickable { isImageZoomed = true }
                         ) {
                             Image(
                                 painter = painterResource(id = story.mediaResId),
+                                contentDescription = story.headline,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    } else {
+                        val fallbackRes = KiezPhotoHelper.getKiezDrawable(story.kiez)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.Black)
+                                .clickable { isImageZoomed = true }
+                        ) {
+                            Image(
+                                painter = painterResource(id = fallbackRes),
                                 contentDescription = story.headline,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -777,7 +977,8 @@ fun StoryCreateDialog(
         isVideo: Boolean,
         isCommercial: Boolean,
         durationHours: Int,
-        pricePaid: Double
+        pricePaid: Double,
+        urlLink: String
     ) -> Unit
 ) {
     var headline by remember { mutableStateOf("") }
@@ -786,6 +987,11 @@ fun StoryCreateDialog(
     var selectedKind by remember { mutableStateOf("news") }
     var selectedColor by remember { mutableStateOf("blau") }
     var author by remember { mutableStateOf("") }
+    var urlLink by remember { mutableStateOf("") }
+    var customKind by remember { mutableStateOf("") }
+    var isCustomKindSelected by remember { mutableStateOf(false) }
+    var kiezMenuExpanded by remember { mutableStateOf(false) }
+    var videoDurationWarning by remember { mutableStateOf<String?>(null) }
     var selectedDurationHours by remember { mutableIntStateOf(24) }
     var isCommercial by remember { mutableStateOf(false) }
     var rulesAccepted by remember { mutableStateOf(false) }
@@ -793,6 +999,7 @@ fun StoryCreateDialog(
     var selectedMediaUri by remember { mutableStateOf<String?>(null) }
     var isVideoMedia by remember { mutableStateOf(false) }
     var durationMenuExpanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -800,6 +1007,7 @@ fun StoryCreateDialog(
         if (uri != null) {
             selectedMediaUri = uri.toString()
             isVideoMedia = false
+            videoDurationWarning = null
         }
     }
 
@@ -807,9 +1015,137 @@ fun StoryCreateDialog(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            selectedMediaUri = uri.toString()
-            isVideoMedia = true
+            // Check video duration: MUST be <= 90 seconds
+            var durationSec = 0L
+            try {
+                val retriever = MediaMetadataRetriever()
+                retriever.setDataSource(context, uri)
+                val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                durationSec = durationMs / 1000L
+                retriever.release()
+            } catch (_: Exception) {}
+
+            if (durationSec > 90L) {
+                videoDurationWarning = if (language == AppLanguage.TURKISH)
+                    "Video en fazla 90 saniye olabilir! (Seçilen video: ${durationSec} saniye)"
+                else if (language == AppLanguage.ENGLISH)
+                    "Video must be maximum 90 seconds! (Selected: ${durationSec}s)"
+                else
+                    "Video darf maximal 90 Sekunden lang sein! (Gewählt: ${durationSec}s)"
+                selectedMediaUri = null
+                isVideoMedia = false
+            } else {
+                videoDurationWarning = null
+                selectedMediaUri = uri.toString()
+                isVideoMedia = true
+            }
         }
+    }
+
+    var customKiezInput by remember { mutableStateOf("") }
+    var showCustomKiezInput by remember { mutableStateOf(false) }
+
+    val allBerlinKieze = remember {
+        val baseKieze = listOf(
+            "Ganz Berlin",
+            "Berlin ve Çevresi",
+            "Mitte",
+            "Kreuzberg",
+            "Friedrichshain",
+            "Prenzlauer Berg",
+            "Neukölln",
+            "Charlottenburg",
+            "Wilmersdorf",
+            "Schöneberg",
+            "Tempelhof",
+            "Wedding",
+            "Moabit",
+            "Tegel",
+            "Spandau",
+            "Reinickendorf",
+            "Pankow",
+            "Tiergarten",
+            "Steglitz",
+            "Zehlendorf",
+            "Marzahn",
+            "Hellersdorf",
+            "Lichtenberg",
+            "Treptow",
+            "Köpenick",
+            "Weißensee",
+            "Lichtenrade",
+            "Britz",
+            "Buckow",
+            "Rudow",
+            "Gropiusstadt",
+            "Halensee",
+            "Schmargendorf",
+            "Grunewald",
+            "Westend",
+            "Charlottenburg-Nord",
+            "Friedenau",
+            "Mariendorf",
+            "Marienfelde",
+            "Lankwitz",
+            "Lichterfelde",
+            "Dahlem",
+            "Nikolassee",
+            "Wannsee",
+            "Haselhorst",
+            "Siemensstadt",
+            "Staaken",
+            "Gatow",
+            "Kladow",
+            "Hakenfelde",
+            "Falkenhagener Feld",
+            "Wilhelmstadt",
+            "Wittenau",
+            "Hermsdorf",
+            "Waidmannslust",
+            "Lübars",
+            "Frohnau",
+            "Heiligensee",
+            "Konradshöhe",
+            "Märkisches Viertel",
+            "Blankenburg",
+            "Blankenfelde",
+            "Buch",
+            "Französisch Buchholz",
+            "Heinersdorf",
+            "Karow",
+            "Niederschönhausen",
+            "Rosenthal",
+            "Wilhelmsruh",
+            "Friedrichsfelde",
+            "Karlshorst",
+            "Falkenberg",
+            "Malchow",
+            "Wartenberg",
+            "Neu-Hohenschönhausen",
+            "Alt-Hohenschönhausen",
+            "Fennpfuhl",
+            "Rummelsburg",
+            "Biesdorf",
+            "Kaulsdorf",
+            "Mahlsdorf",
+            "Alt-Treptow",
+            "Plänterwald",
+            "Baumschulenweg",
+            "Johannisthal",
+            "Niederschöneweide",
+            "Altglienicke",
+            "Adlershof",
+            "Bohnsdorf",
+            "Oberschöneweide",
+            "Köpenick",
+            "Friedrichshagen",
+            "Rahnsdorf",
+            "Grünau",
+            "Müggelheim",
+            "Schmöckwitz"
+        )
+        val customKieze = com.example.data.repository.KiezStorageManager.loadCustomKieze(context)
+        (baseKieze + customKieze).distinct()
     }
 
     val priceToPay = when (selectedDurationHours) {
@@ -885,6 +1221,25 @@ fun StoryCreateDialog(
                     }
                 }
 
+                // Video 90s Warning if exceeded
+                videoDurationWarning?.let { warningText ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = BerlinRed.copy(alpha = 0.15f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BerlinRed),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = BerlinRed, modifier = Modifier.size(20.dp))
+                            Text(warningText, color = BerlinRed, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
                 if (selectedMediaUri != null) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -897,7 +1252,7 @@ fun StoryCreateDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = if (isVideoMedia) "Seçilen: Video (1 Dk)" else "Seçilen: Fotoğraf / Görsel",
+                                text = if (isVideoMedia) (if (language == AppLanguage.TURKISH) "Seçilen: Video (Maks 90 sn)" else "Ausgewählt: Video (Max 90 Sek.)") else (if (language == AppLanguage.TURKISH) "Seçilen: Fotoğraf / Görsel" else "Ausgewählt: Foto"),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = BerlinGreen
@@ -907,6 +1262,161 @@ fun StoryCreateDialog(
                             }
                         }
                     }
+                }
+
+                // 24+2 MAHALLE HAMBURGER MENÜSÜ (Ganz Berlin, Berlin ve Çevresi + 24 Berlin Mahallesi)
+                Text(
+                    text = if (language == AppLanguage.TURKISH) "Olay / Hikâye Mahallesi (24 Mahalle & Berlin):" else "Bezirk / Kiez wählen (24 Kieze & Umgebung):",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { kiezMenuExpanded = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = BerlinRed, modifier = Modifier.size(18.dp))
+                                Text("📍 $selectedKiez", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = kiezMenuExpanded,
+                        onDismissRequest = { kiezMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = if (language == AppLanguage.TURKISH) "+ Yeni Mahalle Ekle..." else "+ Neuen Kiez hinzufügen...",
+                                    fontWeight = FontWeight.Bold,
+                                    color = BerlinRed
+                                )
+                            },
+                            onClick = {
+                                showCustomKiezInput = true
+                                kiezMenuExpanded = false
+                            }
+                        )
+                        allBerlinKieze.forEach { kiezName ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = kiezName,
+                                            fontWeight = if (selectedKiez == kiezName) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (kiezName == "Ganz Berlin" || kiezName == "Berlin ve Çevresi") BerlinRed else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (selectedKiez == kiezName) {
+                                            Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = BerlinGreen, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    selectedKiez = kiezName
+                                    kiezMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (showCustomKiezInput) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = customKiezInput,
+                            onValueChange = { customKiezInput = it },
+                            placeholder = { Text(if (language == AppLanguage.TURKISH) "Yeni Mahalle Adı (örn: Tegel)" else "Kiez-Name eingeben") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        Button(
+                            onClick = {
+                                if (customKiezInput.isNotBlank()) {
+                                    val trimmed = customKiezInput.trim()
+                                    selectedKiez = trimmed
+                                    com.example.data.repository.KiezStorageManager.saveCustomKiez(context, trimmed)
+                                    showCustomKiezInput = false
+                                    customKiezInput = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = BerlinGreen)
+                        ) {
+                            Text("Ekle")
+                        }
+                    }
+                }
+
+                // KATEGORİ HAPLARI (Neuigkeit, Verkehr, Veranstaltung, Warnung, Info, Politik + ÖZEL KATEGORİ GİRİŞİ)
+                Text(
+                    text = if (language == AppLanguage.TURKISH) "Kategori Seçimi:" else "Kategorie wählen:",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val defaultCategories = listOf(
+                        "Neuigkeit" to (if (language == AppLanguage.TURKISH) "Haber / Neuigkeit" else "Neuigkeit"),
+                        "Verkehr" to (if (language == AppLanguage.TURKISH) "Trafik / Verkehr" else "Verkehr"),
+                        "Veranstaltung" to (if (language == AppLanguage.TURKISH) "Etkinlik / Event" else "Veranstaltung"),
+                        "Warnung" to (if (language == AppLanguage.TURKISH) "Uyarı / Warnung" else "Warnung"),
+                        "Info" to (if (language == AppLanguage.TURKISH) "Bilgi / Info" else "Info"),
+                        "Politik" to (if (language == AppLanguage.TURKISH) "Politik / Yerel" else "Politik")
+                    )
+
+                    items(defaultCategories) { (catKey, catLabel) ->
+                        FilterChip(
+                            selected = !isCustomKindSelected && selectedKind == catKey,
+                            onClick = {
+                                isCustomKindSelected = false
+                                selectedKind = catKey
+                            },
+                            label = { Text(catLabel, fontSize = 11.sp) }
+                        )
+                    }
+
+                    item {
+                        FilterChip(
+                            selected = isCustomKindSelected,
+                            onClick = { isCustomKindSelected = true },
+                            label = { Text(if (language == AppLanguage.TURKISH) "+ Kendi Kategorini Yaz" else "+ Eigene Kategorie", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        )
+                    }
+                }
+
+                // Özel Kategori Serbest Metin Girişi
+                if (isCustomKindSelected) {
+                    OutlinedTextField(
+                        value = customKind,
+                        onValueChange = { customKind = it },
+                        label = { Text(if (language == AppLanguage.TURKISH) "Özel Kategori İsmi Yazın" else "Eigene Kategorie eingeben") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 OutlinedTextField(
@@ -929,6 +1439,17 @@ fun StoryCreateDialog(
                     value = author,
                     onValueChange = { author = it },
                     label = { Text(if (language == AppLanguage.TURKISH) "Adınız / İşletme" else "Name / Betrieb") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // YENİ PENCERE: URL / WEB SAYFASI LİNKİ GİRİŞİ
+                OutlinedTextField(
+                    value = urlLink,
+                    onValueChange = { urlLink = it },
+                    label = { Text(if (language == AppLanguage.TURKISH) "Web Sayfası / Kaynak Linki (URL)" else "Webseite / Quellen-Link (URL)") },
+                    placeholder = { Text("https://...") },
+                    leadingIcon = { Icon(imageVector = Icons.Default.Link, contentDescription = "URL Link", tint = BerlinBlue) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1163,18 +1684,20 @@ fun StoryCreateDialog(
                 Button(
                     onClick = {
                         if (headline.isNotBlank() && rulesAccepted) {
+                            val finalKind = if (isCustomKindSelected && customKind.isNotBlank()) customKind.trim() else selectedKind
                             onSubmit(
                                 headline,
                                 subtext,
                                 selectedKiez,
-                                selectedKind,
+                                finalKind,
                                 selectedColor,
                                 if (author.isBlank()) "Kiez-User" else author,
                                 selectedMediaUri,
                                 isVideoMedia,
                                 isCommercial,
                                 selectedDurationHours,
-                                priceToPay
+                                priceToPay,
+                                urlLink.trim()
                             )
                         }
                     },
@@ -1184,7 +1707,7 @@ fun StoryCreateDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = BerlinRed)
                 ) {
                     Text(
-                        text = if (language == AppLanguage.TURKISH) "Admin Onayına Gönder" else "Zur Admin-Prüfung senden",
+                        text = if (language == AppLanguage.TURKISH) "Durumu Paylaş / Yayınla 🚀" else "Story veröffentlichen 🚀",
                         fontWeight = FontWeight.Bold
                     )
                 }

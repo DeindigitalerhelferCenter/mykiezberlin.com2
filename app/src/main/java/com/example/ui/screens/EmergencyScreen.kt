@@ -110,7 +110,7 @@ fun EmergencyScreen(
             }
         }
 
-        // Tab Selector: [ 🚨 Zentrale Notrufe | 👮 22 Mahalle Karakolu ]
+        // Tab Selector: [ 🚨 Zentrale Notrufe | 👮 22 Mahalle Karakolu | 🏛️ Resmî Portallar ]
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -131,9 +131,9 @@ fun EmergencyScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (language == AppLanguage.TURKISH) "🚨 Acil Hatlar" else "🚨 Zentrale Notrufe",
+                            text = if (language == AppLanguage.TURKISH) "🚨 Acil Hatlar" else "🚨 Notrufe",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = if (selectedTab == 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -151,10 +151,30 @@ fun EmergencyScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (language == AppLanguage.TURKISH) "👮 Mahalle Karakolları" else "👮 22 Kiez-Wachen",
+                            text = if (language == AppLanguage.TURKISH) "👮 Karakollar" else "👮 Wachen",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Surface(
+                    modifier = Modifier
+                        .weight(1.1f)
+                        .clickable { selectedTab = 2 },
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (selectedTab == 2) BerlinRed else Color.Transparent
+                ) {
+                    Box(
+                        modifier = Modifier.padding(vertical = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (language == AppLanguage.TURKISH) "🏛️ Resmî Portallar" else "🏛️ Portale & BVG",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = if (selectedTab == 2) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -257,7 +277,7 @@ fun EmergencyScreen(
                     }
                 }
             }
-        } else {
+        } else if (selectedTab == 1) {
             // 22 Mahalle Karakolu Listesi
             Column(modifier = Modifier.fillMaxSize()) {
                 OutlinedTextField(
@@ -359,6 +379,142 @@ fun EmergencyScreen(
                         }
                     }
                 }
+            }
+        } else {
+            // Tab 2: Resmî Berlin Kamu ve Ulaşım Portalları (Telif / Güvenlik Riski Olmayan Resmi Linkler)
+            val officialPortals = listOf(
+                OfficialPortalInfo(
+                    title = "Berlin.de Resmî Etkinlikler & Festivaller",
+                    url = "https://www.berlin.de/events/volksfeste/",
+                    desc = "Volksfeste, Ekim festivalleri, kültür, tiyatro ve müzik etkinlikleri resmi rehberi."
+                ),
+                OfficialPortalInfo(
+                    title = "Berlin.de Eyalet Resmî Ana Portalı",
+                    url = "https://www.berlin.de/",
+                    desc = "Berlin Eyaleti resmi hükümet, kamu ve şehir rehberi ana sayfası."
+                ),
+                OfficialPortalInfo(
+                    title = "Polizei Berlin (Resmî Güvenlik)",
+                    url = "https://www.berlin.de/polizei/",
+                    desc = "Berlin Emniyet Müdürlüğü resmi duyuruları, basın bültenleri ve karakol rehberi."
+                ),
+                OfficialPortalInfo(
+                    title = "Polizei Berlin Internetwache (Online İhbar)",
+                    url = "https://www.internetwache-polizei-berlin.de/",
+                    desc = "Online suç duyurusu, ihbar bildirme ve resmi emniyet servisleri."
+                ),
+                OfficialPortalInfo(
+                    title = "BVG (Berliner Verkehrsbetriebe)",
+                    url = "https://www.bvg.de/de/verbindungen/stoerungsmeldungen",
+                    desc = "U-Bahn, Tram ve Otobüs canlı sefer durumları, arıza ve gecikme bildirimleri."
+                ),
+                OfficialPortalInfo(
+                    title = "S-Bahn Berlin (Deutsche Bahn)",
+                    url = "https://sbahn.berlin/fahren/bauen-stoerung/",
+                    desc = "Berlin banliyö trenleri, hat inşaatları ve güncel sefer kesinti tablosu."
+                ),
+                OfficialPortalInfo(
+                    title = "Berliner Feuerwehr (İtfaiye & Kurtarma)",
+                    url = "https://www.berliner-feuerwehr.de/",
+                    desc = "Resmi yangın, ilkyardım ve acil kurtarma bilgilendirme servisi."
+                ),
+                OfficialPortalInfo(
+                    title = "Bürgeramt Berlin (Service-Portal)",
+                    url = "https://service.berlin.de/standorte/buergeraemter/",
+                    desc = "İkametgâh (Anmeldung), kimlik, pasaport randevuları ve belediye hizmetleri."
+                )
+            )
+
+            LazyColumn(
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 90.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(officialPortals) { portal ->
+                    OfficialPortalCard(portal = portal)
+                }
+            }
+        }
+    }
+}
+
+data class OfficialPortalInfo(
+    val title: String,
+    val url: String,
+    val desc: String
+)
+
+@Composable
+fun OfficialPortalCard(portal: OfficialPortalInfo) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = BerlinRed.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BerlinRed.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = "🏛️ Resmî Berlin Portalı",
+                        color = BerlinRed,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                    )
+                }
+
+                Text(
+                    text = "Yasal & Güvenli",
+                    color = BerlinGreen,
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = portal.title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = portal.desc,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 16.sp
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+                onClick = {
+                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(portal.url))
+                    context.startActivity(browserIntent)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = BerlinRed),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(15.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Websayfasına Git (${portal.url}) ↗", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

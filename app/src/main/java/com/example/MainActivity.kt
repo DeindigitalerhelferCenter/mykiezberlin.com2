@@ -108,8 +108,12 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                     searchQuery = uiState.searchQuery,
                     customBusinesses = uiState.customBusinesses,
                     onAddBusiness = { viewModel.addCustomBusiness(it) },
-                    stories = uiState.customStories + com.example.data.repository.SampleData.stories,
-                    onStoryClick = { viewModel.openStory(it) },
+                    stories = uiState.allStories,
+                    onStoryClick = { clickedStory ->
+                        val approvedList = uiState.allStories.filter { it.status == "approved" }
+                        val idx = approvedList.indexOf(clickedStory).coerceAtLeast(0)
+                        viewModel.openStory(clickedStory, approvedList, idx)
+                    },
                     onAddStoryClick = { viewModel.openAddStoryDialog() },
                     viewMode = uiState.businessViewMode,
                     onViewModeChange = { viewModel.setBusinessViewMode(it) },
@@ -164,7 +168,9 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                     language = uiState.language,
                     onSelectOption = { viewModel.answerQuizOption(it) },
                     onNextQuestion = { viewModel.nextQuizQuestion() },
-                    onRestart = { viewModel.restartQuiz() }
+                    onRestart = { viewModel.restartQuiz() },
+                    onNavigateHome = { viewModel.navigateTo(AppScreen.HOME) },
+                    onNavigateKieze = { viewModel.navigateTo(AppScreen.KIEZE) }
                 )
 
                 AppScreen.FOOD -> FoodScreen(
@@ -236,7 +242,7 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                     language = uiState.language,
                     isAuthenticated = uiState.isAdminAuthenticated,
                     currentTab = uiState.adminStoriesTab,
-                    stories = uiState.customStories + com.example.data.repository.SampleData.stories,
+                    stories = uiState.allStories,
                     onLogin = { token ->
                         val success = token == "admin123" || token == "kiez2026" || token == "admin"
                         viewModel.setAdminAuthenticated(success)
@@ -251,6 +257,21 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                     onAddAdminStory = { h, s, k, kd, c, a, uri, isVid, dur ->
                         viewModel.addAdminStory(h, s, k, kd, c, a, uri, isVid, dur)
                     },
+                    onLogout = {
+                        viewModel.setAdminAuthenticated(false)
+                    },
+                    onBack = { viewModel.navigateTo(AppScreen.HOME) }
+                )
+
+                AppScreen.LIVE_BULLETIN -> BerlinLiveBulletinScreen(
+                    language = uiState.language,
+                    bulletins = uiState.liveBulletins,
+                    activeFolder = uiState.activeBulletinFolder,
+                    searchQuery = uiState.bulletinSearchQuery,
+                    lastUpdateMillis = uiState.lastBulletinUpdateMillis,
+                    onSelectFolder = { viewModel.selectBulletinFolder(it) },
+                    onSearchChange = { viewModel.setBulletinSearchQuery(it) },
+                    onRefresh = { viewModel.refreshLiveBulletins() },
                     onBack = { viewModel.navigateTo(AppScreen.HOME) }
                 )
             }
@@ -274,10 +295,17 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
         )
     }
 
-    // Story Viewer Modal
-    uiState.activeStory?.let { story ->
+    // Story Viewer Modal (Supports auto sequential playback of all approved stories!)
+    if (uiState.activeStoriesList.isNotEmpty()) {
         StoryViewerDialog(
-            story = story,
+            stories = uiState.activeStoriesList,
+            initialIndex = uiState.activeStoryIndex,
+            language = uiState.language,
+            onClose = { viewModel.closeStory() }
+        )
+    } else if (uiState.activeStory != null) {
+        StoryViewerDialog(
+            story = uiState.activeStory!!,
             language = uiState.language,
             onClose = { viewModel.closeStory() }
         )
@@ -288,8 +316,8 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
         StoryCreateDialog(
             language = uiState.language,
             onClose = { viewModel.closeAddStoryDialog() },
-            onSubmit = { h, s, k, kd, c, a, uri, isVid, isComm, dur, pr ->
-                viewModel.submitStory(h, s, k, kd, c, a, uri, isVid, isComm, dur, pr)
+            onSubmit = { h, s, k, kd, c, a, uri, isVid, isComm, dur, pr, link ->
+                viewModel.submitStory(h, s, k, kd, c, a, uri, isVid, isComm, dur, pr, link)
             }
         )
     }
@@ -303,7 +331,7 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                     text = if (feedback == "REJECTED")
                         (if (uiState.language == AppLanguage.TURKISH) "İçerik Reddedildi" else "Beitrag abgelehnt")
                     else
-                        (if (uiState.language == AppLanguage.TURKISH) "Admin Onayına İletildi" else "Zur Admin-Prüfung eingereicht"),
+                        (if (uiState.language == AppLanguage.TURKISH) "Hikâye Yayında! 🎉" else "Story ist online! 🎉"),
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -316,9 +344,9 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                             "Dein Beitrag verstößt gegen unsere Richtlinien (keine Politik, keine Beleidigungen, keine 18+ Inhalte) und wurde abgelehnt."
                     } else {
                         if (uiState.language == AppLanguage.TURKISH)
-                            "Hikâyeniz başarıyla gönderildi! Güvenlik kuralları gereği admin tarafından incelendikten hemen sonra mykiezberlin.com üzerinde yayına alınacaktır."
+                            "Hikâyeniz başarıyla yüklendi ve yayına alındı! Belirlediğiniz süre boyunca ana sayfa story barında ve ilgili mahallede aktif kalacaktır."
                         else
-                            "Deine Story wurde erfolgreich eingereicht! Sie wird nach kurzer Admin-Prüfung auf mykiezberlin.com freigeschaltet."
+                            "Deine Story wurde erfolgreich veröffentlicht und ist jetzt live im Story-Bereich sichtbar!"
                     }
                 )
             },

@@ -49,9 +49,10 @@ fun MyKiezTopBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Main Logo
+            // Main Logo (Sade logo, yazısız, belirgin ve şık)
             MyKiezLogoView(
-                height = 38,
+                height = 42,
+                showText = false,
                 onClick = { onNavigate(AppScreen.HOME) }
             )
 

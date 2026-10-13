@@ -66,6 +66,7 @@ fun AdminScreen(
         isVideo: Boolean,
         durationHours: Int
     ) -> Unit,
+    onLogout: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -83,6 +84,58 @@ fun AdminScreen(
 
     // Admin create story dialog (+ Neue Story (Admin))
     var showAdminCreateStoryDialog by remember { mutableStateOf(false) }
+    var showLogoutConfirmDialog by remember { mutableStateOf(false) }
+
+    androidx.activity.compose.BackHandler {
+        if (isAuthenticated) {
+            showLogoutConfirmDialog = true
+        } else {
+            onBack()
+        }
+    }
+
+    if (showLogoutConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirmDialog = false },
+            title = {
+                Text(
+                    text = if (language == AppLanguage.TURKISH) "Admin Çıkışı" else "Admin-Abmeldung",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (language == AppLanguage.TURKISH)
+                        "Çıkış yapmak istiyor musunuz?\n\n'Açık Bırak' derseniz bu cihazda oturum açık kalır ve tekrar şifre sormaz.\n'Oturumu Kapat' derseniz oturum sonlanır ve tekrar şifre girmeniz gerekir."
+                    else
+                        "Möchten Sie sich wirklich abmelden?\n\n'Angemeldet bleiben' hält die Admin-Sitzung auf diesem Gerät dauerhaft aktiv.\n'Abmelden' sperrt den Zugang und erfordert erneute Passworteingabe.",
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutConfirmDialog = false
+                        onLogout()
+                        onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BerlinRed)
+                ) {
+                    Text(if (language == AppLanguage.TURKISH) "Evet, Oturumu Kapat" else "Ja, Abmelden", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        showLogoutConfirmDialog = false
+                        onBack()
+                    }
+                ) {
+                    Text(if (language == AppLanguage.TURKISH) "Hayır, Açık Bırak & Ana Sayfa" else "Nein, Angemeldet bleiben")
+                }
+            }
+        )
+    }
 
     // If not authenticated, show the login box matching admin.html with EYE TOGGLE
     if (!isAuthenticated) {
@@ -241,11 +294,23 @@ fun AdminScreen(
                         onClick = { showAdminCreateStoryDialog = true },
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(end = 4.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (language == AppLanguage.TURKISH) "+ Story Ekle" else "+ Story", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(if (language == AppLanguage.TURKISH) "+ Story" else "+ Story", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    // Logout Button with Confirmation
+                    IconButton(
+                        onClick = { showLogoutConfirmDialog = true },
+                        modifier = Modifier.padding(end = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Logout",
+                            tint = Color(0xFFEF4444)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -1082,6 +1147,7 @@ fun AdminCreateStoryModal(
 
     var selectedMediaUri by remember { mutableStateOf<String?>(null) }
     var isVideoMedia by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -1101,7 +1167,14 @@ fun AdminCreateStoryModal(
         }
     }
 
-    val kieze = remember { SampleData.kieze.map { it.name }.distinct() + listOf("Ganz Berlin") }
+    var showCustomKiezDialog by remember { mutableStateOf(false) }
+    var customKiezInput by remember { mutableStateOf("") }
+
+    val kieze = remember(showCustomKiezDialog) {
+        val base = com.example.data.repository.KiezStorageManager.ALL_BERLIN_OFFICIAL_KIEZE
+        val custom = com.example.data.repository.KiezStorageManager.loadCustomKieze(context)
+        (base + custom).distinct()
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1215,7 +1288,58 @@ fun AdminCreateStoryModal(
                 )
 
                 // Kiez selection chips
-                Text("Kiez:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Kiez:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = if (language == AppLanguage.TURKISH) "+ Yeni Mahalle Ekle" else "+ Neuer Kiez",
+                        color = Color(0xFFFFCC00),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { showCustomKiezDialog = true }
+                    )
+                }
+
+                if (showCustomKiezDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showCustomKiezDialog = false },
+                        title = { Text(if (language == AppLanguage.TURKISH) "Yeni Mahalle Ekle" else "Neuen Kiez hinzufügen") },
+                        text = {
+                            OutlinedTextField(
+                                value = customKiezInput,
+                                onValueChange = { customKiezInput = it },
+                                label = { Text("Mahalle / Kiez Adı") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (customKiezInput.isNotBlank()) {
+                                        val trimmed = customKiezInput.trim()
+                                        com.example.data.repository.KiezStorageManager.saveCustomKiez(context, trimmed)
+                                        selectedKiez = trimmed
+                                        customKiezInput = ""
+                                        showCustomKiezDialog = false
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F9D55))
+                            ) {
+                                Text("Speichern / Kaydet", color = Color.White)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showCustomKiezDialog = false }) {
+                                Text("Abbrechen")
+                            }
+                        }
+                    )
+                }
+
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -1271,17 +1395,21 @@ fun AdminCreateStoryModal(
                     )
                 )
 
-                Text("Laufzeit:", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Row(
+                Text("Laufzeit (Admin: 100% Kostenlos · Keine Gebühren):", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    listOf(
-                        24 to "24 Std.",
-                        48 to "48 Std.",
-                        168 to "7 Tage",
-                        720 to "30 Tage"
-                    ).forEach { (h, label) ->
+                    items(
+                        listOf(
+                            24 to "24 Std. (0€)",
+                            48 to "48 Std. (0€)",
+                            168 to "7 Tage (0€)",
+                            720 to "30 Tage (0€)",
+                            2160 to "90 Tage (0€)",
+                            9999 to "Unbegrenzt (0€)"
+                        )
+                    ) { (h, label) ->
                         FilterChip(
                             selected = selectedDurationHours == h,
                             onClick = { selectedDurationHours = h },

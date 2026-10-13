@@ -1,12 +1,16 @@
-package com.example.ui.viewmodel
-
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.data.model.*
+import com.example.data.repository.BerlinBulletinRepository
+import com.example.data.repository.KiezStorageManager
 import com.example.data.repository.SampleData
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 enum class AppScreen {
     HOME,
@@ -25,7 +29,8 @@ enum class AppScreen {
     JOBS,
     NOTRUF,
     REPORTER,
-    ADMIN
+    ADMIN,
+    LIVE_BULLETIN
 }
 
 data class UiState(
@@ -68,21 +73,71 @@ data class UiState(
     val customBusinesses: List<LocalBusiness> = emptyList(),
     val customJobs: List<KiezJob> = emptyList(),
     val customStories: List<KiezStory> = emptyList(),
+    val allStories: List<KiezStory> = SampleData.stories,
     val customReports: List<KiezReporterPost> = emptyList(),
     // Stories
     val activeStory: KiezStory? = null,
+    val activeStoriesList: List<KiezStory> = emptyList(),
+    val activeStoryIndex: Int = 0,
     val showAddStoryDialog: Boolean = false,
     val storySubmissionFeedback: String? = null,
     // Admin & Moderation
     val isAdminAuthenticated: Boolean = false,
     val adminStoriesTab: String = "pending", // "pending", "approved", "rejected", "sponsors", "jobs", "requests", "posts"
     // Map selection
-    val selectedMapSpot: FoodSpot? = SampleData.foodSpots.first()
+    val selectedMapSpot: FoodSpot? = SampleData.foodSpots.first(),
+    // Berlin Live Bulletins (Hourly & 24h Auto-Expiry)
+    val liveBulletins: List<BerlinLiveBulletin> = emptyList(),
+    val activeBulletinFolder: BulletinFolder = BulletinFolder.ALL,
+    val bulletinSearchQuery: String = "",
+    val lastBulletinUpdateMillis: Long = System.currentTimeMillis()
 )
 
-class MyKiezViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(UiState())
+class MyKiezViewModel(application: Application) : AndroidViewModel(application) {
+    private val app = application
+
+    private val _uiState = MutableStateFlow(
+        UiState(
+            allStories = KiezStorageManager.loadStories(application),
+            isAdminAuthenticated = KiezStorageManager.isAdminAuthenticated(application),
+            liveBulletins = BerlinBulletinRepository.loadBulletins(application)
+        )
+    )
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    init {
+        // Hourly maintenance coroutine: Prunes bulletins older than 24h
+        viewModelScope.launch {
+            while (true) {
+                delay(60_000L) // Check every 60 seconds
+                val current = _uiState.value.liveBulletins
+                val pruned = BerlinBulletinRepository.pruneExpiredBulletins(current)
+                if (pruned.size != current.size) {
+                    BerlinBulletinRepository.saveBulletins(app, pruned)
+                    _uiState.update { it.copy(liveBulletins = pruned) }
+                }
+            }
+        }
+    }
+
+    fun refreshLiveBulletins() {
+        val updated = BerlinBulletinRepository.generateHourlyRefresh(_uiState.value.liveBulletins)
+        BerlinBulletinRepository.saveBulletins(app, updated)
+        _uiState.update {
+            it.copy(
+                liveBulletins = updated,
+                lastBulletinUpdateMillis = System.currentTimeMillis()
+            )
+        }
+    }
+
+    fun selectBulletinFolder(folder: BulletinFolder) {
+        _uiState.update { it.copy(activeBulletinFolder = folder) }
+    }
+
+    fun setBulletinSearchQuery(query: String) {
+        _uiState.update { it.copy(bulletinSearchQuery = query) }
+    }
 
     fun navigateTo(screen: AppScreen) {
         _uiState.update { it.copy(currentScreen = screen) }
@@ -250,12 +305,26 @@ class MyKiezViewModel : ViewModel() {
     }
 
     // Stories
-    fun openStory(story: KiezStory) {
-        _uiState.update { it.copy(activeStory = story) }
+    fun openStory(story: KiezStory, list: List<KiezStory> = emptyList(), index: Int = 0) {
+        val fullList = if (list.isNotEmpty()) list else listOf(story)
+        val validIndex = if (index in fullList.indices) index else fullList.indexOf(story).coerceAtLeast(0)
+        _uiState.update {
+            it.copy(
+                activeStory = story,
+                activeStoriesList = fullList,
+                activeStoryIndex = validIndex
+            )
+        }
     }
 
     fun closeStory() {
-        _uiState.update { it.copy(activeStory = null) }
+        _uiState.update {
+            it.copy(
+                activeStory = null,
+                activeStoriesList = emptyList(),
+                activeStoryIndex = 0
+            )
+        }
     }
 
     fun openAddStoryDialog() {
@@ -281,7 +350,8 @@ class MyKiezViewModel : ViewModel() {
         isVideo: Boolean = false,
         isCommercial: Boolean = false,
         durationHours: Int = 24,
-        pricePaid: Double = 0.0
+        pricePaid: Double = 0.0,
+        link: String = ""
     ) {
         val lowerText = "$headline $subtext $author".lowercase()
         // Moderation filter: Politic, bad words / swearing, 18+ adult content prohibited
@@ -291,6 +361,10 @@ class MyKiezViewModel : ViewModel() {
             "nazi", "hitler", "afd", "faschist", "terror", "krieg", "propaganda"
         )
         val hasProhibitedContent = prohibitedWords.any { lowerText.contains(it) }
+
+        val persistentMediaUri = mediaUri?.takeIf { it.isNotBlank() }?.let {
+            KiezStorageManager.copyMediaToInternalStorage(app, it, isVideo)
+        }
 
         if (hasProhibitedContent) {
             val rejectedStory = KiezStory(
@@ -302,16 +376,20 @@ class MyKiezViewModel : ViewModel() {
                 kiez = kiez,
                 author = author,
                 timeAgo = "gerade eben",
-                mediaUri = mediaUri,
+                mediaUri = persistentMediaUri,
                 isVideo = isVideo,
                 isCommercial = isCommercial,
                 durationHours = durationHours,
                 pricePaid = pricePaid,
+                link = link,
                 status = "rejected",
                 modNote = "Automatisch abgelehnt: Verstoß gegen Inhaltsregeln (18+/Politik/Beleidigung)"
             )
             _uiState.update {
+                val updatedStories = listOf(rejectedStory) + it.allStories
+                KiezStorageManager.saveStories(app, updatedStories)
                 it.copy(
+                    allStories = updatedStories,
                     customStories = listOf(rejectedStory) + it.customStories,
                     showAddStoryDialog = false,
                     storySubmissionFeedback = "REJECTED"
@@ -320,7 +398,7 @@ class MyKiezViewModel : ViewModel() {
             return
         }
 
-        // Compliant stories go to 'pending' state awaiting Admin approval
+        // Stories are immediately approved and visible on home page and story bar
         val newStory = KiezStory(
             id = "story_${System.currentTimeMillis()}",
             headline = headline,
@@ -328,27 +406,33 @@ class MyKiezViewModel : ViewModel() {
             kind = kind,
             headlineColor = color,
             kiez = kiez,
-            author = author,
+            author = author.ifBlank { "Kiez-User" },
             timeAgo = "gerade eben",
-            mediaUri = mediaUri,
+            mediaUri = persistentMediaUri,
             isVideo = isVideo,
             isCommercial = isCommercial,
             durationHours = durationHours,
             pricePaid = pricePaid,
-            status = "pending",
-            modNote = "KI: Unbedenklich / Wartet auf Admin-Freigabe"
+            link = link,
+            status = "approved",
+            modNote = "KI: Geprüft & Freigegeben",
+            createdAtMillis = System.currentTimeMillis()
         )
         _uiState.update {
+            val updatedStories = listOf(newStory) + it.allStories
+            KiezStorageManager.saveStories(app, updatedStories)
             it.copy(
+                allStories = updatedStories,
                 customStories = listOf(newStory) + it.customStories,
                 showAddStoryDialog = false,
-                storySubmissionFeedback = "PENDING"
+                storySubmissionFeedback = "APPROVED"
             )
         }
     }
 
     // Admin Actions (Freigeben, Ablehnen, Löschen, Verlängern, Bearbeiten)
     fun setAdminAuthenticated(auth: Boolean) {
+        KiezStorageManager.setAdminAuthenticated(app, auth)
         _uiState.update { it.copy(isAdminAuthenticated = auth) }
     }
 
@@ -358,7 +442,7 @@ class MyKiezViewModel : ViewModel() {
 
     fun approveStory(storyId: String, durationHours: Int? = null) {
         _uiState.update { state ->
-            val updated = state.customStories.map { story ->
+            val updateFn = { story: KiezStory ->
                 if (story.id == storyId) {
                     story.copy(
                         status = "approved",
@@ -367,24 +451,34 @@ class MyKiezViewModel : ViewModel() {
                     )
                 } else story
             }
-            state.copy(customStories = updated)
+            val newAll = state.allStories.map(updateFn)
+            KiezStorageManager.saveStories(app, newAll)
+            state.copy(
+                allStories = newAll,
+                customStories = state.customStories.map(updateFn)
+            )
         }
     }
 
     fun rejectStory(storyId: String, reason: String = "Von Admin abgelehnt") {
         _uiState.update { state ->
-            val updated = state.customStories.map { story ->
+            val updateFn = { story: KiezStory ->
                 if (story.id == storyId) {
                     story.copy(status = "rejected", modNote = reason)
                 } else story
             }
-            state.copy(customStories = updated)
+            val newAll = state.allStories.map(updateFn)
+            KiezStorageManager.saveStories(app, newAll)
+            state.copy(
+                allStories = newAll,
+                customStories = state.customStories.map(updateFn)
+            )
         }
     }
 
     fun extendStory(storyId: String, additionalHours: Int) {
         _uiState.update { state ->
-            val updated = state.customStories.map { story ->
+            val updateFn = { story: KiezStory ->
                 if (story.id == storyId) {
                     story.copy(
                         durationHours = story.durationHours + additionalHours,
@@ -392,24 +486,39 @@ class MyKiezViewModel : ViewModel() {
                     )
                 } else story
             }
-            state.copy(customStories = updated)
+            val newAll = state.allStories.map(updateFn)
+            KiezStorageManager.saveStories(app, newAll)
+            state.copy(
+                allStories = newAll,
+                customStories = state.customStories.map(updateFn)
+            )
         }
     }
 
     fun deleteStory(storyId: String) {
         _uiState.update { state ->
-            state.copy(customStories = state.customStories.filterNot { it.id == storyId })
+            val newAll = state.allStories.filterNot { it.id == storyId }
+            KiezStorageManager.saveStories(app, newAll)
+            state.copy(
+                allStories = newAll,
+                customStories = state.customStories.filterNot { it.id == storyId }
+            )
         }
     }
 
     fun updateStoryHeadline(storyId: String, newHeadline: String, newSubtext: String) {
         _uiState.update { state ->
-            val updated = state.customStories.map { story ->
+            val updateFn = { story: KiezStory ->
                 if (story.id == storyId) {
                     story.copy(headline = newHeadline, subtext = newSubtext)
                 } else story
             }
-            state.copy(customStories = updated)
+            val newAll = state.allStories.map(updateFn)
+            KiezStorageManager.saveStories(app, newAll)
+            state.copy(
+                allStories = newAll,
+                customStories = state.customStories.map(updateFn)
+            )
         }
     }
 
@@ -424,6 +533,10 @@ class MyKiezViewModel : ViewModel() {
         isVideo: Boolean = false,
         durationHours: Int = 48
     ) {
+        val persistentMediaUri = mediaUri?.takeIf { it.isNotBlank() }?.let {
+            KiezStorageManager.copyMediaToInternalStorage(app, it, isVideo)
+        }
+
         val adminStory = KiezStory(
             id = "story_admin_${System.currentTimeMillis()}",
             headline = headline,
@@ -433,14 +546,20 @@ class MyKiezViewModel : ViewModel() {
             kiez = kiez,
             author = author.ifBlank { "Admin" },
             timeAgo = "gerade eben",
-            mediaUri = mediaUri,
+            mediaUri = persistentMediaUri,
             isVideo = isVideo,
             durationHours = durationHours,
             status = "approved",
-            modNote = "KI: Admin"
+            modNote = "KI: Admin Direktfreigabe",
+            createdAtMillis = System.currentTimeMillis()
         )
         _uiState.update {
-            it.copy(customStories = listOf(adminStory) + it.customStories)
+            val newAll = listOf(adminStory) + it.allStories
+            KiezStorageManager.saveStories(app, newAll)
+            it.copy(
+                allStories = newAll,
+                customStories = listOf(adminStory) + it.customStories
+            )
         }
     }
 
