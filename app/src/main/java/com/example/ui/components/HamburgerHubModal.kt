@@ -292,6 +292,31 @@ fun HamburgerHubModal(
                         }
                     }
 
+                    // Berlin'de Ne Yapılır & Canlı Bülten
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FolderNavTile(
+                            title = if (language == AppLanguage.TURKISH) "Berlin'de Ne Yapılır?" else "Was tun in Berlin?",
+                            subtitle = if (language == AppLanguage.TURKISH) "33 Berlin Noktası (Maps)" else "33 Highlights (1-Klick)",
+                            icon = Icons.Default.Explore,
+                            color = BerlinBlue,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            onNavigateToScreen(AppScreen.BERLIN_TIPS)
+                            onDismiss()
+                        }
+
+                        FolderNavTile(
+                            title = if (language == AppLanguage.TURKISH) "🔴 Canlı Bülten" else "🔴 Live-Ticker",
+                            subtitle = if (language == AppLanguage.TURKISH) "Polis & BVG Resmî" else "Offizielle Meldungen",
+                            icon = Icons.Default.Sensors,
+                            color = BerlinRed,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            onNavigateToScreen(AppScreen.LIVE_BULLETIN)
+                            onDismiss()
+                        }
+                    }
+
                     // Hızlı İşletme Ekle Aksiyonu
                     Surface(
                         shape = RoundedCornerShape(12.dp),

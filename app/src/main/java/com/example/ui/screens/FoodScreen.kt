@@ -217,8 +217,7 @@ fun FoodScreen(
 
                             OutlinedButton(
                                 onClick = {
-                                    val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${spot.name}+Berlin"))
-                                    context.startActivity(Intent.createChooser(mapIntent, "Karte öffnen"))
+                                    com.example.util.MapHelper.openDirections(context, "${spot.name} ${spot.address} Berlin")
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp)

@@ -38,6 +38,7 @@ fun HamburgerMenuModal(
     onNavigate: (AppScreen) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val kiezeFilterList = listOf("Alle") + SampleData.allKieze.map { it.name }
     val categoriesFilterList = listOf("Alle") + SampleData.categoriesMap.values.map {
         if (language == AppLanguage.TURKISH) it.second else it.first
@@ -263,13 +264,13 @@ fun HamburgerMenuModal(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         FolderNavButton(
-                            title = if (language == AppLanguage.TURKISH) "Kiez Haritası" else "Stadtplan",
+                            title = if (language == AppLanguage.TURKISH) "Google Maps" else "Google Maps",
                             icon = Icons.Default.Map,
                             tint = BerlinGreen,
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 onDismiss()
-                                onNavigate(AppScreen.KIEZ_MAP)
+                                com.example.util.MapHelper.openGoogleMaps(context, "Berlin Germany")
                             }
                         )
                         FolderNavButton(
@@ -332,6 +333,32 @@ fun HamburgerMenuModal(
                             onClick = {
                                 onDismiss()
                                 onNavigate(AppScreen.REPORTER)
+                            }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FolderNavButton(
+                            title = if (language == AppLanguage.TURKISH) "Berlin'de Ne Yapılır?" else "Was tun in Berlin?",
+                            icon = Icons.Default.Explore,
+                            tint = BerlinRed,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                onDismiss()
+                                onNavigate(AppScreen.BERLIN_TIPS)
+                            }
+                        )
+                        FolderNavButton(
+                            title = if (language == AppLanguage.TURKISH) "Canlı Bülten" else "Live-Ticker",
+                            icon = Icons.Default.RssFeed,
+                            tint = BerlinGreen,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                onDismiss()
+                                onNavigate(AppScreen.LIVE_BULLETIN)
                             }
                         )
                     }

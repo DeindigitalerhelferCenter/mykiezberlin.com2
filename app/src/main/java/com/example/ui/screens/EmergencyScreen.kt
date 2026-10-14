@@ -37,10 +37,11 @@ import com.example.ui.theme.BerlinRedLight
 
 @Composable
 fun EmergencyScreen(
-    language: AppLanguage
+    language: AppLanguage,
+    onNavigateToLiveBulletin: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Notrufe, 1: Kiez-Polizei
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Notrufe, 1: Kiez-Polizei, 2: Portale
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredKieze = remember(searchQuery) {
@@ -429,6 +430,42 @@ fun EmergencyScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 90.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = BerlinRed.copy(alpha = 0.1f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BerlinRed.copy(alpha = 0.35f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToLiveBulletin() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = BerlinRed,
+                                modifier = Modifier.size(10.dp)
+                            ) {}
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (language == AppLanguage.TURKISH) "🔴 Saat Başı Canlı Berlin Bülteni" else "🔴 Stündlicher Berlin Live-Ticker",
+                                    fontWeight = FontWeight.Bold,
+                                    color = BerlinRed,
+                                    fontSize = 12.5.sp
+                                )
+                                Text(
+                                    text = if (language == AppLanguage.TURKISH) "Polis, İtfaiye, BVG ve S-Bahn olaylarını anlık takip edin ➔" else "Echtzeit-Meldungen & Störungen der Berliner Behörden ansehen ➔",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
                 items(officialPortals) { portal ->
                     OfficialPortalCard(portal = portal)
                 }

@@ -105,9 +105,10 @@ fun BerlinLiveBulletinScreen(
                                 fontSize = 16.sp
                             )
                             Text(
-                                text = if (language == AppLanguage.TURKISH) "Saat Başı Resmi Kamu Olayları (24 Saatlik)" else "Stündliche behördliche Meldungen (24h)",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = "Liveticker Update $lastUpdateFormatted",
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
@@ -197,7 +198,7 @@ fun BerlinLiveBulletinScreen(
                                         modifier = Modifier.size(13.dp)
                                     )
                                     Text(
-                                        text = if (language == AppLanguage.TURKISH) "Saat Başı Yenile" else "Stündlich aktualisieren",
+                                        text = "Update",
                                         color = Color.White,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
@@ -217,37 +218,6 @@ fun BerlinLiveBulletinScreen(
                             lineHeight = 16.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // 24 Hours Auto-Expiry Rule Badge
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = BerlinGreen.copy(alpha = 0.12f),
-                            border = BorderStroke(1.dp, BerlinGreen.copy(alpha = 0.3f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Timer,
-                                    contentDescription = null,
-                                    tint = BerlinGreen,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = if (language == AppLanguage.TURKISH)
-                                        "24 Saat Kuralı: 24 saat sonra tüm eski bültenler otomatik olarak silinir."
-                                    else
-                                        "24-Stunden-Regel: Alle Meldungen verfallen nach 24 Std. und werden automatisch gelöscht.",
-                                    fontSize = 10.5.sp,
-                                    color = BerlinGreen,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -450,7 +420,7 @@ fun BerlinLiveBulletinScreen(
                         fontSize = 14.sp
                     )
                     Text(
-                        text = if (language == AppLanguage.TURKISH) "Son 24 Saatlik Yayında" else "Letzte 24 Stunden",
+                        text = "Liveticker Update $lastUpdateFormatted",
                         fontSize = 11.sp,
                         color = BerlinRed,
                         fontWeight = FontWeight.SemiBold
@@ -501,10 +471,6 @@ fun BulletinCard(
 ) {
     val context = LocalContext.current
 
-    // Calculate hours remaining out of 24h
-    val ageMillis = now - bulletin.timestampMillis
-    val remainingHours = ((24L * 3600L * 1000L - ageMillis) / (3600L * 1000L)).coerceIn(1, 24)
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -518,7 +484,7 @@ fun BulletinCard(
         )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Header Row: Folder Tag + Hour Badge + 24h Remaining Timer
+            // Header Row: Folder Tag + Kiez Tag
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -554,25 +520,11 @@ fun BulletinCard(
                         )
                     }
                 }
-
-                // 24-Hour Expiration pill
-                Surface(
-                    color = BerlinGreenLight,
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Text(
-                        text = if (language == AppLanguage.TURKISH) "⏳ Kalan: $remainingHours sa" else "⏳ Noch $remainingHours Std.",
-                        color = BerlinGreen,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Time and Official Source Row
+            // Time and Official Source Row (Sadece "vor HH:mm Uhr online" yazılır)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -585,8 +537,8 @@ fun BulletinCard(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "${bulletin.hourBadge} • ${bulletin.timeAgoFormatted}",
-                    fontSize = 11.sp,
+                    text = bulletin.formattedOnlineBadge(),
+                    fontSize = 11.5.sp,
                     color = BerlinRed,
                     fontWeight = FontWeight.Bold
                 )

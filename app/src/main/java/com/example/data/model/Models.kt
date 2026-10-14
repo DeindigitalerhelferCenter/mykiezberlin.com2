@@ -166,6 +166,13 @@ data class KiezCoupon(
     val address: String = "Berlin"
 )
 
+data class KiezReporterComment(
+    val id: String,
+    val author: String,
+    val text: String,
+    val timestampMillis: Long = System.currentTimeMillis()
+)
+
 data class KiezReporterPost(
     val id: String,
     val title: String,
@@ -174,7 +181,8 @@ data class KiezReporterPost(
     val category: String, // "Verkehr", "Baustelle", "Neueröffnung", "Kultur", "Fundbüro"
     val author: String,
     val timeAgo: String,
-    val upvotes: Int = 1
+    val upvotes: Int = 1,
+    val comments: List<KiezReporterComment> = emptyList()
 )
 
 data class EmergencyContact(
@@ -374,5 +382,30 @@ data class BerlinLiveBulletin(
 ) {
     fun localizedTitle(lang: AppLanguage): String = if (lang == AppLanguage.TURKISH) titleTr else title
     fun localizedSummary(lang: AppLanguage): String = if (lang == AppLanguage.TURKISH) summaryTr else summary
+    fun formattedOnlineBadge(): String {
+        val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY)
+        return "vor ${sdf.format(java.util.Date(timestampMillis))} Uhr online"
+    }
 }
+
+data class BerlinTip(
+    val id: String,
+    val name: String,
+    val kiezId: String,
+    val categories: List<String>,
+    val isFree: Boolean,
+    val lat: Double,
+    val lng: Double,
+    val address: String,
+    val descDe: String,
+    val descTr: String,
+    val descEn: String
+) {
+    fun localizedDesc(lang: AppLanguage): String = when (lang) {
+        AppLanguage.TURKISH -> descTr
+        AppLanguage.ENGLISH -> descEn
+        else -> descDe
+    }
+}
+
 

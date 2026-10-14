@@ -33,6 +33,7 @@ import com.example.ui.components.BerlinTransitMapComponent
 import com.example.ui.components.KiezPhotoHelper
 import com.example.ui.components.RealKiezImage
 import com.example.ui.theme.*
+import com.example.util.MapHelper
 import com.example.ui.viewmodel.AppScreen
 
 @Composable
@@ -623,8 +624,7 @@ fun KiezDetailScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:${kiez.lat},${kiez.lng}?q=${Uri.encode(kiez.name + " Berlin")}"))
-                                    context.startActivity(Intent.createChooser(mapIntent, "Karte"))
+                                    MapHelper.openGoogleMaps(context, "${kiez.name} Berlin", kiez.lat, kiez.lng)
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(10.dp),
@@ -721,8 +721,7 @@ fun KiezDetailScreen(
 
                                     OutlinedButton(
                                         onClick = {
-                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(kiez.buergeramtName + " " + kiez.buergeramtAddress)}"))
-                                            context.startActivity(Intent.createChooser(mapIntent, "Route"))
+                                            MapHelper.openDirections(context, "${kiez.buergeramtName} ${kiez.buergeramtAddress} Berlin")
                                         },
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.weight(1f)
@@ -792,8 +791,7 @@ fun KiezDetailScreen(
 
                                     OutlinedButton(
                                         onClick = {
-                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(kiez.policeStation + " " + kiez.policeAddress)}"))
-                                            context.startActivity(Intent.createChooser(mapIntent, "Polizei"))
+                                            MapHelper.openGoogleMaps(context, "${kiez.policeStation} ${kiez.policeAddress} Berlin")
                                         },
                                         shape = RoundedCornerShape(8.dp),
                                         modifier = Modifier.weight(1f)
@@ -901,8 +899,7 @@ fun KiezDetailScreen(
                                         shape = RoundedCornerShape(6.dp),
                                         color = BerlinRedLight,
                                         modifier = Modifier.clickable {
-                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=$sight+Berlin"))
-                                            context.startActivity(Intent.createChooser(mapIntent, "Karte öffnen"))
+                                            MapHelper.openDirections(context, "$sight, ${kiez.name}, Berlin")
                                         }
                                     ) {
                                         Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

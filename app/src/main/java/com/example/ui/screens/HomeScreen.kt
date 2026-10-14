@@ -251,6 +251,140 @@ fun HomeScreen(
             }
         }
 
+        // 🔴 Berlin Saat Başı Canlı Bülten & Resmi Haberler (24 Saatlik)
+        item {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = BerlinRed.copy(alpha = 0.08f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BerlinRed.copy(alpha = 0.35f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clickable { onNavigate(AppScreen.LIVE_BULLETIN) }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = BerlinRed,
+                        modifier = Modifier.size(10.dp)
+                    ) {}
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) "🔴 CANLI BERLİN BÜLTENİ" else "🔴 BERLIN LIVE-TICKER",
+                                color = BerlinRed,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = BerlinRed.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = "LIVE",
+                                    color = BerlinRed,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (language == AppLanguage.TURKISH)
+                                "Polis, İtfaiye, BVG, S-Bahn ve Berlin Senatosu resmî bültenleri."
+                            else
+                                "Offizielle Meldungen von Polizei, Feuerwehr, BVG, S-Bahn & Senat.",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = BerlinRed,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        // 🗺️ Berlin'de Ne Yapılır? (33 Klasik Gezi & Cazibe Noktası)
+        item {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = BerlinBlue.copy(alpha = 0.08f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BerlinBlue.copy(alpha = 0.35f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clickable { onNavigate(AppScreen.BERLIN_TIPS) }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = BerlinBlue,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(imageVector = Icons.Default.Explore, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) "BERLİN'DE NE YAPILIR?" else "WAS TUN IN BERLIN?",
+                                color = BerlinBlue,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF34A853).copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "33 NOKTA",
+                                    color = Color(0xFF34A853),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (language == AppLanguage.TURKISH)
+                                "Tarihi simgeler, manzaralar, müzeler ve parklar (Google Maps Tek Tık)."
+                            else
+                                "Wahrzeichen, Aussichten, Museen & Parks (Google Maps 1-Klick).",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = BerlinBlue,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
         // 22 Kieze Quick Selector Row with real mini photos
         item {
             Column(modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)) {

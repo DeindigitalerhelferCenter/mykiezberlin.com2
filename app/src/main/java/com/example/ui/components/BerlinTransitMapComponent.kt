@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -18,17 +17,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppLanguage
+import com.example.ui.theme.BerlinGreen
 import com.example.ui.theme.BerlinRed
 import com.example.ui.theme.BerlinRedLight
+import com.example.ui.theme.BerlinYellow
+import com.example.util.MapHelper
 
 data class TransitLineInfo(
     val code: String,
@@ -39,6 +38,18 @@ data class TransitLineInfo(
     val majorStations: List<String>
 )
 
+data class OfficialTransitMapCard(
+    val id: String,
+    val titleDe: String,
+    val titleTr: String,
+    val subtitleDe: String,
+    val subtitleTr: String,
+    val badge: String,
+    val url: String,
+    val iconColor: Color,
+    val isPdf: Boolean = false
+)
+
 @Composable
 fun BerlinTransitMapComponent(
     language: AppLanguage,
@@ -46,6 +57,63 @@ fun BerlinTransitMapComponent(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
+    // Resmî U-Bahn, S-Bahn & BVG Ağ Haritaları
+    val officialMaps = remember {
+        listOf(
+            OfficialTransitMapCard(
+                id = "bvg_pdf",
+                titleDe = "BVG S+U-Bahn Netzplan (Berlin ABC)",
+                titleTr = "Resmî S+U-Bahn Hat Haritası (PDF Tam Boy)",
+                subtitleDe = "Offizieller BVG Hochauflösender Netzplan (U-Bahn & S-Bahn)",
+                subtitleTr = "Berlin'in tüm metro ve banliyö tren ağı resmî PDF haritası",
+                badge = "PDF NETZPLAN",
+                url = "https://www.bvg.de/dam/jcr:b2bf0dfc-8db5-48fa-bb64-cba0ec99fa28/S+U-Bahn-Netz.pdf",
+                iconColor = Color(0xFFF3C400),
+                isPdf = true
+            ),
+            OfficialTransitMapCard(
+                id = "sbahn_netz",
+                titleDe = "S-Bahn Berlin Liniennetz",
+                titleTr = "S-Bahn Berlin Resmî Hat Ağı",
+                subtitleDe = "Offizielles Streckennetz der S-Bahn Berlin (Ringbahn & Stadtbahn)",
+                subtitleTr = "Ringbahn ve banliyö hatları resmî Deutsche Bahn haritası",
+                badge = "S-BAHN BERLIN",
+                url = "https://sbahn.berlin/liniennetz/",
+                iconColor = Color(0xFF007E33)
+            ),
+            OfficialTransitMapCard(
+                id = "bvg_portal",
+                titleDe = "BVG Liniennetz & Tarifzonen Portal",
+                titleTr = "BVG Resmî Hatlar & Tarifeler Portalı",
+                subtitleDe = "Interaktive Netzpläne, Tram, Bus und Fähren",
+                subtitleTr = "Resmî BVG metro, tramvay, otobüs ve vapur hatları",
+                badge = "BVG.DE",
+                url = "https://www.bvg.de/de/verbindungen/liniennetz",
+                iconColor = Color(0xFFF3C400)
+            ),
+            OfficialTransitMapCard(
+                id = "bvg_disruption",
+                titleDe = "BVG Störungsmeldungen & Live-Lage",
+                titleTr = "BVG Canlı Sefer & Kesinti Bildirimleri",
+                subtitleDe = "Aktuelle Betriebslage, Baustellen und Ausfälle",
+                subtitleTr = "U-Bahn, Tram ve otobüs canlı arıza ve sefer durumları",
+                badge = "LIVE STÖRUNG",
+                url = "https://www.bvg.de/de/verbindungen/stoerungsmeldungen",
+                iconColor = BerlinRed
+            ),
+            OfficialTransitMapCard(
+                id = "vbb_portal",
+                titleDe = "VBB Verkehrsverbund Berlin-Brandenburg",
+                titleTr = "VBB Berlin & Çevre Eyalet Raylı Ağı",
+                subtitleDe = "Regionalbahn- und Gesamtraum-Netzpläne",
+                subtitleTr = "Bölgesel trenler (RE/RB) ve banliyö ağ haritası",
+                badge = "VBB.DE",
+                url = "https://www.vbb.de/fahrinfo/liniennetze/",
+                iconColor = Color(0xFF1A73E8)
+            )
+        )
+    }
 
     val transitLines = remember {
         listOf(
@@ -67,16 +135,12 @@ fun BerlinTransitMapComponent(
         mutableStateOf(transitLines.find { it.code == initialSelectedLine } ?: transitLines[0])
     }
 
-    var selectedTypeFilter by remember { mutableStateOf("Alle") }
-
-    val filteredLines = remember(selectedTypeFilter) {
-        if (selectedTypeFilter == "Alle") transitLines else transitLines.filter { it.type == selectedTypeFilter }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 32.dp)
     ) {
         // Quick Action Bar: BVG & Google Maps External links
         Surface(
@@ -101,81 +165,137 @@ fun BerlinTransitMapComponent(
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = if (language == AppLanguage.TURKISH) "Berlin U- & S-Bahn Ağı" else "Berlin Schnellbahnnetz",
+                        text = if (language == AppLanguage.TURKISH) "Berlin Resmî Ulaşım Ağları" else "Berliner Liniennetz & Pläne",
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Google Maps Transit Button
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF34A853),
-                        modifier = Modifier.clickable {
-                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/@52.5170,13.3888,12z/data=!5m1!1e2"))
-                            context.startActivity(mapIntent)
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                            Text(text = "Google Maps", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        }
-                    }
-
-                    // BVG Fahrinfo Button
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF3C400),
-                        modifier = Modifier.clickable {
-                            val bvgIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.bvg.de/de/verbindungen/fahrplanauskunft"))
-                            context.startActivity(bvgIntent)
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.DirectionsTransit, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
-                            Text(text = "BVG Fahrinfo", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Filter Pills: [Tümü | U-Bahn | S-Bahn]
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf("Alle", "U-Bahn", "S-Bahn").forEach { filterType ->
-                val isSelected = selectedTypeFilter == filterType
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isSelected) BerlinRed else MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.clickable { selectedTypeFilter = filterType }
+                    color = Color(0xFF34A853),
+                    modifier = Modifier.clickable {
+                        MapHelper.openGoogleMaps(context, "Berlin Transit ÖPNV")
+                    }
                 ) {
-                    Text(
-                        text = when {
-                            language == AppLanguage.TURKISH && filterType == "Alle" -> "Tüm Hatlar"
-                            else -> filterType
-                        },
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        Text(text = "Google Maps", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // RESMÎ ULAŞIM KARTLARI (Kullanıcı tıkladığı an doğrudan resmî harita ve linke gider)
+        Text(
+            text = if (language == AppLanguage.TURKISH) "🚇 Resmî U-Bahn & S-Bahn Ağ Haritaları" else "🚇 Offizielle Netzpläne & BVG-Karten",
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            officialMaps.forEach { mapCard ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(mapCard.url)).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            context.startActivity(browserIntent)
+                        },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = mapCard.iconColor.copy(alpha = 0.15f),
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (mapCard.isPdf) Icons.Default.PictureAsPdf else Icons.Default.DirectionsSubway,
+                                    contentDescription = null,
+                                    tint = mapCard.iconColor,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = mapCard.iconColor.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = mapCard.badge,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = mapCard.iconColor,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) mapCard.titleTr else mapCard.titleDe,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (language == AppLanguage.TURKISH) mapCard.subtitleTr else mapCard.subtitleDe,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = "Aç",
+                            tint = BerlinRed,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // HATLAR VE İSTASYON DETAYLARI
+        Text(
+            text = if (language == AppLanguage.TURKISH) "🚉 Berlin Metro & Banliyö Hatları (Hızlı İstasyon Rehberi)" else "🚉 Berliner Linien (Stationen & Route)",
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
 
         // Horizontal Line Selector Badges
         Row(
@@ -185,7 +305,7 @@ fun BerlinTransitMapComponent(
                 .padding(horizontal = 14.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            filteredLines.forEach { line ->
+            transitLines.forEach { line ->
                 val isSelected = selectedLine.code == line.code
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -193,7 +313,7 @@ fun BerlinTransitMapComponent(
                     modifier = Modifier.clickable { selectedLine = line }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -213,121 +333,7 @@ fun BerlinTransitMapComponent(
             }
         }
 
-        // Interactive Berlin Liniennetz Canvas
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(210.dp)
-                .padding(horizontal = 14.dp, vertical = 6.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFF1E242B))
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-
-                // Spree river diagram
-                val spree = Path().apply {
-                    moveTo(0f, h * 0.55f)
-                    cubicTo(w * 0.25f, h * 0.45f, w * 0.55f, h * 0.65f, w, h * 0.50f)
-                }
-                drawPath(spree, Color(0xFF2B4764), style = Stroke(width = 16f))
-
-                // S-Bahn Ringbahn (Outer loop)
-                val ring = Path().apply {
-                    addOval(androidx.compose.ui.geometry.Rect(w * 0.16f, h * 0.15f, w * 0.84f, h * 0.85f))
-                }
-                drawPath(ring, Color(0xFF782522), style = Stroke(width = 12f))
-
-                // Stadtbahn (East-West diagonal)
-                drawLine(
-                    color = Color(0xFF007E33),
-                    start = Offset(0f, h * 0.35f),
-                    end = Offset(w, h * 0.65f),
-                    strokeWidth = 10f
-                )
-
-                // Nord-Süd-Bahn (North-South vertical)
-                drawLine(
-                    color = Color(0xFF006F45),
-                    start = Offset(w * 0.50f, 0f),
-                    end = Offset(w * 0.50f, h),
-                    strokeWidth = 10f
-                )
-
-                // U2 (Red line)
-                drawLine(
-                    color = Color(0xFFE31B23),
-                    start = Offset(w * 0.70f, 0f),
-                    end = Offset(w * 0.25f, h),
-                    strokeWidth = 8f
-                )
-
-                // U7 (Light blue line)
-                drawLine(
-                    color = Color(0xFF009ED7),
-                    start = Offset(0f, h * 0.20f),
-                    end = Offset(w, h * 0.80f),
-                    strokeWidth = 8f
-                )
-
-                // U8 (Blue line)
-                drawLine(
-                    color = Color(0xFF135A9C),
-                    start = Offset(w * 0.60f, 0f),
-                    end = Offset(w * 0.60f, h),
-                    strokeWidth = 8f
-                )
-
-                // U9 (Orange line)
-                drawLine(
-                    color = Color(0xFFF37920),
-                    start = Offset(w * 0.35f, 0f),
-                    end = Offset(w * 0.35f, h),
-                    strokeWidth = 8f
-                )
-
-                // Hub nodes (Interchanges)
-                val hubs = listOf(
-                    Offset(w * 0.50f, h * 0.50f), // Friedrichstraße
-                    Offset(w * 0.62f, h * 0.54f), // Alexanderplatz
-                    Offset(w * 0.38f, h * 0.47f), // Hauptbahnhof
-                    Offset(w * 0.28f, h * 0.44f), // Zoologischer Garten
-                    Offset(w * 0.84f, h * 0.50f), // Ostkreuz
-                    Offset(w * 0.16f, h * 0.50f), // Westkreuz
-                    Offset(w * 0.50f, h * 0.15f), // Gesundbrunnen
-                    Offset(w * 0.50f, h * 0.85f)  // Südkreuz
-                )
-
-                hubs.forEach { hub ->
-                    drawCircle(Color.White, radius = 7f, center = hub)
-                    drawCircle(Color.Black, radius = 4f, center = hub)
-                }
-            }
-
-            // Overlay label
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color.Black.copy(alpha = 0.7f),
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Surface(shape = CircleShape, color = selectedLine.color, modifier = Modifier.size(10.dp)) {}
-                    Text(
-                        text = "${selectedLine.code} · ${selectedLine.terminus}",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Selected Line Detail Card
         Card(
@@ -338,7 +344,7 @@ fun BerlinTransitMapComponent(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(14.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -350,8 +356,7 @@ fun BerlinTransitMapComponent(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = selectedLine.color,
-                            modifier = Modifier.padding(bottom = 2.dp)
+                            color = selectedLine.color
                         ) {
                             Text(
                                 text = selectedLine.code,
@@ -376,21 +381,21 @@ fun BerlinTransitMapComponent(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "Güzergâh: ${selectedLine.terminus}",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = if (language == AppLanguage.TURKISH) "Önemli Aktarma İstasyonları:" else "Wichtige Umsteigebahnhöfe:",
+                    text = if (language == AppLanguage.TURKISH) "Önemli Aktarma İstasyonları (Google Maps Tek Tık):" else "Wichtige Bahnhöfe (Google Maps 1-Klick):",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -402,16 +407,15 @@ fun BerlinTransitMapComponent(
                             shape = RoundedCornerShape(6.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier.clickable {
-                                val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=S+U+$station+Berlin"))
-                                context.startActivity(Intent.createChooser(mapIntent, "Station öffnen"))
+                                MapHelper.openGoogleMaps(context, "S+U $station Berlin")
                             }
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Place, contentDescription = null, tint = selectedLine.color, modifier = Modifier.size(11.dp))
+                                Icon(imageVector = Icons.Default.Place, contentDescription = null, tint = selectedLine.color, modifier = Modifier.size(12.dp))
                                 Text(text = station, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                             }
                         }

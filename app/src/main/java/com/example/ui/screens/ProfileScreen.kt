@@ -40,7 +40,9 @@ fun ProfileScreen(
     onToggleDarkMode: () -> Unit,
     locationGranted: Boolean,
     onToggleLocation: () -> Unit,
-    onNavigate: (AppScreen) -> Unit
+    onNavigate: (AppScreen) -> Unit,
+    notificationsEnabled: Boolean = true,
+    onToggleNotifications: (Boolean) -> Unit = {}
 ) {
     var activeLegalDialog by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
@@ -209,6 +211,35 @@ fun ProfileScreen(
                         Switch(
                             checked = locationGranted,
                             onCheckedChange = { onToggleLocation() },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = BerlinRed)
+                        )
+                    }
+
+                    Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                            Icon(imageVector = Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column {
+                                Text(
+                                    text = if (language == AppLanguage.TURKISH) "Berlin Bildirimleri (2-3 Saatte Bir)" else "Kiez-Benachrichtigungen (alle 2-3h)",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = if (language == AppLanguage.TURKISH) "İtfaiye, polis, ulaşım & işletme görünürlüğü" else "Feuerwehr, Polizei, BVG & Unternehmenshinweise",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = notificationsEnabled,
+                            onCheckedChange = { onToggleNotifications(it) },
                             colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = BerlinRed)
                         )
                     }

@@ -230,8 +230,7 @@ fun KiezMapComponent(
                                 }
                                 IconButton(
                                     onClick = {
-                                        val gmap = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(pin.title + " " + pin.address)}"))
-                                        context.startActivity(gmap)
+                                        com.example.util.MapHelper.openDirections(context, "${pin.title} ${pin.address}")
                                     }
                                 ) {
                                     Icon(Icons.Default.Directions, contentDescription = "Maps", tint = Color(0xFF34A853))
@@ -282,11 +281,7 @@ fun KiezMapComponent(
                             .align(Alignment.TopCenter)
                             .padding(top = 10.dp)
                             .clickable {
-                                val fullMapIntent = Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(mapQuery)}")
-                                )
-                                context.startActivity(fullMapIntent)
+                                com.example.util.MapHelper.openGoogleMaps(context, mapQuery)
                             }
                     ) {
                         Row(
@@ -316,11 +311,7 @@ fun KiezMapComponent(
                     // SAĞ ALT: HIZLI YOL TARİFİ (DIRECTIONS) BUTONU
                     FloatingActionButton(
                         onClick = {
-                            val dirIntent = Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${Uri.encode(mapQuery)}")
-                            )
-                            context.startActivity(dirIntent)
+                            com.example.util.MapHelper.openDirections(context, mapQuery)
                         },
                         containerColor = BerlinRed,
                         contentColor = Color.White,

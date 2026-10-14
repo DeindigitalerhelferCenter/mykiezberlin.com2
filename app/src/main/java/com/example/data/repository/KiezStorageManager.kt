@@ -3,6 +3,9 @@ package com.example.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import com.example.data.model.AppLanguage
+import com.example.data.model.KiezReporterComment
+import com.example.data.model.KiezReporterPost
 import com.example.data.model.KiezStory
 import org.json.JSONArray
 import org.json.JSONObject
@@ -10,8 +13,8 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Manages persistent storage for stories, custom kieze, and admin credentials
- * using SharedPreferences, JSON, and internal file persistence.
+ * Manages persistent storage for stories, custom kieze, language preferences,
+ * notification settings, and admin credentials using SharedPreferences.
  */
 object KiezStorageManager {
 
@@ -19,6 +22,8 @@ object KiezStorageManager {
     private const val KEY_STORIES = "saved_kiez_stories"
     private const val KEY_ADMIN_AUTH = "saved_admin_authenticated"
     private const val KEY_CUSTOM_KIEZE = "saved_custom_kieze"
+    private const val KEY_LANGUAGE = "saved_app_language"
+    private const val KEY_NOTIFICATIONS_ENABLED = "saved_notifications_enabled"
 
     // Complete list of all 96 official Berlin Bezirke & Ortsteile + Ganz Berlin
     val ALL_BERLIN_OFFICIAL_KIEZE = listOf(
@@ -211,5 +216,124 @@ object KiezStorageManager {
         val current = prefs.getStringSet(KEY_CUSTOM_KIEZE, emptySet())?.toMutableSet() ?: mutableSetOf()
         current.add(kiezName.trim())
         prefs.edit().putStringSet(KEY_CUSTOM_KIEZE, current).apply()
+    }
+
+    // --- Language Persistence (Permanent across all screen visits) ---
+    fun loadLanguage(context: Context): AppLanguage {
+        val prefs = getPrefs(context)
+        val code = prefs.getString(KEY_LANGUAGE, null) ?: return AppLanguage.GERMAN
+        return try {
+            AppLanguage.valueOf(code)
+        } catch (e: Exception) {
+            AppLanguage.GERMAN
+        }
+    }
+
+    fun saveLanguage(context: Context, language: AppLanguage) {
+        getPrefs(context).edit().putString(KEY_LANGUAGE, language.name).apply()
+    }
+
+    // --- Automatic Notifications Settings ---
+    fun isNotificationsEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_NOTIFICATIONS_ENABLED, true)
+    }
+
+    fun setNotificationsEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_NOTIFICATIONS_ENABLED, enabled).apply()
+    }
+
+    // --- Kiez Reporter Posts Persistence (Guaranteed Never Lost/Deleted) ---
+    private const val KEY_CUSTOM_REPORTS = "saved_custom_reports"
+    private const val KEY_POST_COMMENTS_PREFIX = "saved_comments_post_"
+
+    fun loadCustomReports(context: Context): List<KiezReporterPost> {
+        val prefs = getPrefs(context)
+        val jsonString = prefs.getString(KEY_CUSTOM_REPORTS, null) ?: return emptyList()
+        return try {
+            val array = JSONArray(jsonString)
+            val list = mutableListOf<KiezReporterPost>()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val postId = obj.getString("id")
+                val postComments = loadCommentsForPost(context, postId)
+                list.add(
+                    KiezReporterPost(
+                        id = postId,
+                        title = obj.getString("title"),
+                        description = obj.getString("description"),
+                        kiez = obj.getString("kiez"),
+                        category = obj.getString("category"),
+                        author = obj.getString("author"),
+                        timeAgo = obj.optString("timeAgo", "Gerade eben"),
+                        upvotes = obj.optInt("upvotes", 1),
+                        comments = postComments
+                    )
+                )
+            }
+            list
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveCustomReports(context: Context, reports: List<KiezReporterPost>) {
+        val prefs = getPrefs(context)
+        val array = JSONArray()
+        for (report in reports) {
+            val obj = JSONObject()
+            obj.put("id", report.id)
+            obj.put("title", report.title)
+            obj.put("description", report.description)
+            obj.put("kiez", report.kiez)
+            obj.put("category", report.category)
+            obj.put("author", report.author)
+            obj.put("timeAgo", report.timeAgo)
+            obj.put("upvotes", report.upvotes)
+            array.put(obj)
+        }
+        prefs.edit().putString(KEY_CUSTOM_REPORTS, array.toString()).apply()
+    }
+
+    // --- Comments Persistence (Up to 10 comments per post) ---
+    fun loadCommentsForPost(context: Context, postId: String): List<KiezReporterComment> {
+        val prefs = getPrefs(context)
+        val jsonString = prefs.getString(KEY_POST_COMMENTS_PREFIX + postId, null) ?: return emptyList()
+        return try {
+            val array = JSONArray(jsonString)
+            val list = mutableListOf<KiezReporterComment>()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                list.add(
+                    KiezReporterComment(
+                        id = obj.getString("id"),
+                        author = obj.getString("author"),
+                        text = obj.getString("text"),
+                        timestampMillis = obj.optLong("timestampMillis", System.currentTimeMillis())
+                    )
+                )
+            }
+            list.take(10)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun addCommentToPost(context: Context, postId: String, comment: KiezReporterComment): List<KiezReporterComment> {
+        val current = loadCommentsForPost(context, postId).toMutableList()
+        if (current.size >= 10) {
+            current.removeAt(0) // Keep latest 10
+        }
+        current.add(comment)
+        val array = JSONArray()
+        for (c in current) {
+            val obj = JSONObject()
+            obj.put("id", c.id)
+            obj.put("author", c.author)
+            obj.put("text", c.text)
+            obj.put("timestampMillis", c.timestampMillis)
+            array.put(obj)
+        }
+        getPrefs(context).edit().putString(KEY_POST_COMMENTS_PREFIX + postId, array.toString()).apply()
+        return current
     }
 }

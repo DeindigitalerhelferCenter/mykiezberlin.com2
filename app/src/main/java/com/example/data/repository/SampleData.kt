@@ -1826,37 +1826,575 @@ object SampleData {
         )
     )
 
-    // Kiez-Reporter Community Posts
-    val reporterPosts = listOf(
-        KiezReporterPost(
-            id = "rep_1",
-            title = "Neuer Pop-Up Flohmarkt am Sonntag am Boxhagener Platz",
-            description = "Lokale Nachbarn organisieren einen kleinen Second-Hand-Stand mit Büchern und Schallplatten.",
-            kiez = "Friedrichshain",
-            category = "Kultur",
-            author = "Sarah",
-            timeAgo = "vor 2 Std.",
-            upvotes = 14
-        ),
-        KiezReporterPost(
-            id = "rep_2",
-            title = "Baustelle und Einbahnstraße in der Skalitzer Straße",
-            description = "Fahrbahnverengung bis Freitag wegen Rohrarbeiten. Radfahrer bitte über Görlitzer Ufer ausweichen.",
-            kiez = "Kreuzberg",
-            category = "Baustelle",
-            author = "Murat",
-            timeAgo = "vor 4 Std.",
-            upvotes = 9
-        ),
-        KiezReporterPost(
-            id = "rep_3",
-            title = "Schlüsselbund mit grünem Band im Volkspark Friedrichshain gefunden",
-            description = "Gefunden nahe dem Märchenbrunnen und beim Parkwächter abgegeben.",
-            kiez = "Friedrichshain",
-            category = "Fundbüro",
-            author = "Tobias",
-            timeAgo = "vor 5 Std.",
-            upvotes = 6
-        )
-    )
+    private fun formatKiezTimeAgo(hours: Int, lang: AppLanguage): String {
+        return when (lang) {
+            AppLanguage.TURKISH -> "$hours sa. önce"
+            AppLanguage.ENGLISH -> "${hours}h ago"
+            else -> "vor $hours Std."
+        }
+    }
+
+    // Kiez-Reporter Community Posts - Echte Quellen & offizielle Berliner Meldungen
+    fun getDailyReporterPosts(lang: AppLanguage = AppLanguage.GERMAN): List<KiezReporterPost> {
+        return BerlinBulletinRepository.getRealReporterPosts(lang)
+    }
+
+    private fun getLegacyPool(lang: AppLanguage): List<KiezReporterPost> {
+        val cal = java.util.Calendar.getInstance()
+        val dayOfYear = cal.get(java.util.Calendar.DAY_OF_YEAR)
+        val poolIndex = Math.floorMod(dayOfYear, 3)
+
+        return when (poolIndex) {
+            0 -> listOf(
+                KiezReporterPost(
+                    id = "rep_d0_1",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Pazar günü Boxhagener Platz'ta yeni Pop-Up bit pazarı"
+                        AppLanguage.ENGLISH -> "New Pop-Up Flea Market Sunday at Boxhagener Platz"
+                        else -> "Neuer Pop-Up Flohmarkt am Sonntag am Boxhagener Platz"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Mahalle sakinleri kitaplar, plaklar ve vintage kıyafetler içeren butik ikinci el tezgahı kuruyor."
+                        AppLanguage.ENGLISH -> "Local neighbors are organizing a small second-hand stand with books, vinyl, and vintage clothes."
+                        else -> "Lokale Nachbarn organisieren einen kleinen Second-Hand-Stand mit Büchern, Vinyl und Vintage-Kleidung."
+                    },
+                    kiez = "Friedrichshain",
+                    category = "Kultur",
+                    author = "Sarah",
+                    timeAgo = formatKiezTimeAgo(1, lang),
+                    upvotes = 19
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_2",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Skalitzer Straße'de yol çalışması ve tek yön uygulaması"
+                        AppLanguage.ENGLISH -> "Road work and one-way lane on Skalitzer Straße"
+                        else -> "Baustelle und Einbahnstraße in der Skalitzer Straße"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Görlitzer Bahnhof yakınındaki su borusu çalışmaları nedeniyle cuma gününe kadar şerit daralması var. Bisikletlilerin Görlitzer Ufer'i kullanması önerilir."
+                        AppLanguage.ENGLISH -> "Lane narrowing until Friday due to water pipe repairs near Görlitzer Bahnhof. Cyclists please detour via Görlitzer Ufer."
+                        else -> "Fahrbahnverengung bis Freitag wegen Rohrarbeiten nahe Görlitzer Bahnhof. Radfahrer bitte über Görlitzer Ufer ausweichen."
+                    },
+                    kiez = "Kreuzberg",
+                    category = "Baustelle",
+                    author = "Murat",
+                    timeAgo = formatKiezTimeAgo(2, lang),
+                    upvotes = 14
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_3",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Volkspark Friedrichshain'da yeşil kurdeleli anahtarlık bulundu"
+                        AppLanguage.ENGLISH -> "Set of keys with green lanyard found in Volkspark Friedrichshain"
+                        else -> "Schlüsselbund mit grünem Band im Volkspark Friedrichshain gefunden"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Märchenbrunnen ana yolu yakınında bulundu ve park bekçisi kulübesine teslim edildi."
+                        AppLanguage.ENGLISH -> "Found near the Fairy Tale Fountain on the main path and handed to the park keeper."
+                        else -> "Gefunden nahe dem Märchenbrunnen am Hauptweg und beim Parkwächterhäuschen abgegeben."
+                    },
+                    kiez = "Friedrichshain",
+                    category = "Fundbüro",
+                    author = "Tobias",
+                    timeAgo = formatKiezTimeAgo(3, lang),
+                    upvotes = 8
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_4",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Sonnenallee'de M41 Otobüs güzergah değişikliği"
+                        AppLanguage.ENGLISH -> "M41 Bus Detour on Sonnenallee"
+                        else -> "M41 Bus Umleitung an der Sonnenallee"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Erkstraße kavşağındaki çalışmalar nedeniyle M41 hattı Karl-Marx-Straße üzerinden yönlendiriliyor. Rathaus Neukölln durakları kaydırıldı."
+                        AppLanguage.ENGLISH -> "Due to roadworks at the Erkstraße crossing, bus line M41 detours via Karl-Marx-Straße. Rathaus Neukölln stops relocated."
+                        else -> "Wegen Bauarbeiten an der Kreuzung Erkstraße fährt die Linie M41 über Karl-Marx-Straße. Haltestellen Rathaus Neukölln werden verlegt."
+                    },
+                    kiez = "Neukölln",
+                    category = "Verkehr",
+                    author = "Aylin",
+                    timeAgo = formatKiezTimeAgo(3, lang),
+                    upvotes = 22
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_5",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Kollwitzplatz'ta taze organik elma ve elma suyu satışı"
+                        AppLanguage.ENGLISH -> "Fresh Organic Apples & Cider at Kollwitzplatz"
+                        else -> "Frische Bio-Äpfel & Apfelmost am Kollwitzplatz"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Brandenburg'dan gelen yerel bir meyve üreticisi Knaackstraße köşesinde doğrudan taze Elstar ve Topaz elmaları satıyor."
+                        AppLanguage.ENGLISH -> "A local Brandenburg orchard is selling fresh-picked apples directly from their van at the corner of Knaackstraße."
+                        else -> "Ein Brandenburger Obsthof bietet heute an der Ecke Knaackstraße erntefrische Sorten wie Elstar und Topaz direkt vom Wagen an."
+                    },
+                    kiez = "Prenzlauer Berg",
+                    category = "Kultur",
+                    author = "Felix",
+                    timeAgo = formatKiezTimeAgo(4, lang),
+                    upvotes = 16
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_6",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Friedrichstraße S-Bahn sinyal arızası giderildi"
+                        AppLanguage.ENGLISH -> "S-Bahn signal fault at Friedrichstraße resolved"
+                        else -> "S-Bahn Signalstörung Friedrichstraße behoben"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "S3, S5, S7 ve S9 hatları yeniden normal seferlerine başladı. Yaklaşık 5 dakikalık ufak gecikmeler olabilir."
+                        AppLanguage.ENGLISH -> "Trains on lines S3, S5, S7, and S9 are running on schedule again, with slight lingering 5-minute delays."
+                        else -> "Die Bahnen der Linien S3, S5, S7 und S9 fahren wieder planmäßig. Es kann noch zu leichten Folgeverspätungen von ca. 5 Minuten kommen."
+                    },
+                    kiez = "Mitte",
+                    category = "Verkehr",
+                    author = "Lisa",
+                    timeAgo = formatKiezTimeAgo(4, lang),
+                    upvotes = 27
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_7",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Yeni Açılış: Müllerstraße'de butik ekşi mayalı fırın"
+                        AppLanguage.ENGLISH -> "Grand Opening: Artisan Sourdough Bakery on Müllerstraße"
+                        else -> "Neueröffnung: Handwerklicher Sauerteig-Bäcker in der Müllerstraße"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Taş fırından taze çıkan enfes ekşi mayalı ekmek ve kakuleli çörekler. İlk hafta %20 tanışma indirimi var."
+                        AppLanguage.ENGLISH -> "Fresh stone-baked sourdough bread and cardamom buns. 20% welcome discount during the first week."
+                        else -> "Köstliches warmes Sauerteigbrot und Kardamom-Knoten frisch aus dem Steinofen. Erste Woche 20% Kennenlern-Rabatt."
+                    },
+                    kiez = "Wedding",
+                    category = "Neueröffnung",
+                    author = "Can",
+                    timeAgo = formatKiezTimeAgo(5, lang),
+                    upvotes = 31
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_8",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Winterfeldtplatz komşu bahçesi yeni gönüllüler arıyor"
+                        AppLanguage.ENGLISH -> "Community Garden at Winterfeldtplatz looking for volunteers"
+                        else -> "Nachbarschaftsgarten am Winterfeldtplatz sucht Mitgärtner"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Bu baharda yükseltilmiş tarhlara fesleğen, biberiye ve domates dikiyoruz. Her perşembe 17:00'de açık buluşma."
+                        AppLanguage.ENGLISH -> "We are planting raised beds with herbs and tomatoes. Open gathering every Thursday at 5 PM."
+                        else -> "Wir pflanzen diesen Frühling Hochbeete mit Küchenkräutern und Tomaten. Jeden Donnerstag 17 Uhr offenes Treffen."
+                    },
+                    kiez = "Schöneberg",
+                    category = "Kultur",
+                    author = "Marie",
+                    timeAgo = formatKiezTimeAgo(6, lang),
+                    upvotes = 12
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_9",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Maybachufer'de beyaz patili gri kedi bulundu"
+                        AppLanguage.ENGLISH -> "Grey cat with white paw found on Maybachufer"
+                        else -> "Graue Katze mit weißer Pfote am Maybachufer zugelaufen"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Çok cana yakın, künyesiz kırmızı tasması var. Şimdilik mahalle kafesinde güvenli şekilde bakılıyor."
+                        AppLanguage.ENGLISH -> "Very friendly, red collar without tag. Safely cared for in the local neighborhood café."
+                        else -> "Sehr zutraulich, rotes Halsband ohne Marke. Ist derzeit im Kiez-Café untergebracht und versorgt."
+                    },
+                    kiez = "Kreuzberg",
+                    category = "Fundbüro",
+                    author = "Emre",
+                    timeAgo = formatKiezTimeAgo(7, lang),
+                    upvotes = 18
+                ),
+                KiezReporterPost(
+                    id = "rep_d0_10",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Ernst-Reuter-Platz / Bismarckstraße'de trafik ışığı arızası"
+                        AppLanguage.ENGLISH -> "Traffic Light Outage at Ernst-Reuter-Platz / Bismarckstraße"
+                        else -> "Ampelausfall am Ernst-Reuter-Platz / Bismarckstraße"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Trafik ışıkları sarı yanıp sönüyor. Lütfen dikkatli geçiniz ve yaya geçitlerine öncelik veriniz."
+                        AppLanguage.ENGLISH -> "Signals flashing yellow. Drive carefully and yield to pedestrians at the zebra crossings."
+                        else -> "Ampelanlage derzeit auf Gelbblinken. Bitte vorsichtig fahren und Fußgängern an den Zebrastreifen Vorrang gewähren."
+                    },
+                    kiez = "Charlottenburg",
+                    category = "Verkehr",
+                    author = "Clara",
+                    timeAgo = formatKiezTimeAgo(8, lang),
+                    upvotes = 25
+                )
+            )
+            1 -> listOf(
+                KiezReporterPost(
+                    id = "rep_d1_1",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Karl-Marx-Straße: Berlin yazarları temalı yeni pop-up kitapçı"
+                        AppLanguage.ENGLISH -> "Karl-Marx-Straße: New pop-up bookstore featuring Berlin authors"
+                        else -> "Karl-Marx-Straße: Neuer Pop-up Buchladen mit Berliner Autoren"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Eski baskılar, Berlin romanları ve arka avluda keyifli okuma alanı açıldı."
+                        AppLanguage.ENGLISH -> "Vintage prints, Berlin novels, and a small cozy courtyard reading space opened."
+                        else -> "Alte Drucke, Berlin-Romane und kleiner Lesesaal im begrünten Innenhof eröffnet."
+                    },
+                    kiez = "Neukölln",
+                    category = "Kultur",
+                    author = "Deniz",
+                    timeAgo = formatKiezTimeAgo(1, lang),
+                    upvotes = 17
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_2",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Warschauer Brücke: U1 metro yürüyen merdiveni yeniden çalışıyor"
+                        AppLanguage.ENGLISH -> "Warschauer Brücke: Escalator to U1 subway back in service"
+                        else -> "Warschauer Brücke: Rolltreppe zur U-Bahn U1 wieder in Betrieb"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "İki haftalık bakım çalışmasının ardından ana yürüyen merdiven hizmete açıldı."
+                        AppLanguage.ENGLISH -> "After two weeks of maintenance, the main escalator is fully operational again."
+                        else -> "Nach zweiwöchiger Wartung läuft die Hauptrolltreppe zur U1 wieder einwandfrei."
+                    },
+                    kiez = "Friedrichshain",
+                    category = "Verkehr",
+                    author = "Hannah",
+                    timeAgo = formatKiezTimeAgo(2, lang),
+                    upvotes = 21
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_3",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Görlitzer Park: Park bankında unutulan siyah deri ceket"
+                        AppLanguage.ENGLISH -> "Görlitzer Park: Black leather jacket left on park bench"
+                        else -> "Görlitzer Park: Schwarze Lederjacke auf Parkbank vergessen"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Saat 14:00'te bulundu ve Wiener Straße köşesindeki büfeye bırakıldı."
+                        AppLanguage.ENGLISH -> "Found at 2 PM and handed over to the kiosk on Wiener Straße."
+                        else -> "Wurde gegen 14 Uhr gefunden und am Kiosk an der Wiener Straße abgegeben."
+                    },
+                    kiez = "Kreuzberg",
+                    category = "Fundbüro",
+                    author = "Kerem",
+                    timeAgo = formatKiezTimeAgo(3, lang),
+                    upvotes = 9
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_4",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Kastanienallee: Fiber optik kablo döşemesi nedeniyle park yasağı"
+                        AppLanguage.ENGLISH -> "Kastanienallee: Fiber optic installation causes parking restrictions"
+                        else -> "Kastanienallee: Glasfaser-Ausbau sorgt für Halteverbote"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Pazartesiden itibaren Oderberger ve Schwedter Str. arasında geçici park yasağı var."
+                        AppLanguage.ENGLISH -> "Temporary no-parking zone between Oderberger and Schwedter Str. starting Monday."
+                        else -> "Ab Montag beidseitiges temporäres Parkverbot zwischen Oderberger und Schwedter Str."
+                    },
+                    kiez = "Prenzlauer Berg",
+                    category = "Baustelle",
+                    author = "Sophia",
+                    timeAgo = formatKiezTimeAgo(3, lang),
+                    upvotes = 15
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_5",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Torstraße: Yeni vegan ramen lokantası 'Noodle Kiez'"
+                        AppLanguage.ENGLISH -> "Torstraße: New vegan ramen restaurant 'Noodle Kiez'"
+                        else -> "Torstraße: Neues veganes Ramen-Restaurant 'Noodle Kiez'"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "El yapımı buğday eriştesi, kremamsı mantar suyu ve matcha dondurması. Şiddetle tavsiye edilir!"
+                        AppLanguage.ENGLISH -> "Handmade noodles, rich mushroom broth, and matcha ice cream. Highly recommended!"
+                        else -> "Selbstgemachte Weizennudeln, cremige Shiitake-Brühe und Matcha-Eis. Große Empfehlung!"
+                    },
+                    kiez = "Mitte",
+                    category = "Neueröffnung",
+                    author = "Lukas",
+                    timeAgo = formatKiezTimeAgo(4, lang),
+                    upvotes = 34
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_6",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Gesundbrunnen: Badstraße'deki şantiye ışığı trafiği yavaşlatıyor"
+                        AppLanguage.ENGLISH -> "Gesundbrunnen: Temporary traffic light on Badstraße causing congestion"
+                        else -> "Gesundbrunnen: Baustellenampel an der Badstraße staut Berufsverkehr"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Pankow yönünde yaklaşık 15 dakika gecikme yaşanıyor, Osloer Straße alternatif olabilir."
+                        AppLanguage.ENGLISH -> "Expect about 15 minutes delay towards Pankow or use Osloer Straße as detour."
+                        else -> "Richtung Pankow ca. 15 Minuten Zeitverlust einplanen oder über die Osloer Straße ausweichen."
+                    },
+                    kiez = "Wedding",
+                    category = "Baustelle",
+                    author = "Zeynep",
+                    timeAgo = formatKiezTimeAgo(5, lang),
+                    upvotes = 28
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_7",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Akazienkiez: Apartman girişinde unutulan puset"
+                        AppLanguage.ENGLISH -> "Akazienkiez: Stroller left in apartment hallway"
+                        else -> "Akazienkiez: Kinderwagen im Hausflur vergessen"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Mavi-gri puset Akazienstr. 14 bina girişinde muhafaza ediliyor, sahibi zili çalabilir."
+                        AppLanguage.ENGLISH -> "Blue-grey stroller kept safe in entrance of Akazienstr. 14, owner please ring bell."
+                        else -> "Blau-grauer Buggy steht geschützt im Hausflur Akazienstr. 14, Besitzer bitte beim Vorderhaus klingeln."
+                    },
+                    kiez = "Schöneberg",
+                    category = "Fundbüro",
+                    author = "Tim",
+                    timeAgo = formatKiezTimeAgo(6, lang),
+                    upvotes = 11
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_8",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Kantstraße: Bisiklet yolu yeni asfaltlandı"
+                        AppLanguage.ENGLISH -> "Kantstraße: Bike boulevard newly resurfaced"
+                        else -> "Kantstraße: Fahrradstraße wird neu asphaltiert"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Savignyplatz ile Leibnizstraße arasında yeni pürüzsüz sessiz asfalt döküldü."
+                        AppLanguage.ENGLISH -> "Smooth new whisper asphalt completed between Savignyplatz and Leibnizstraße."
+                        else -> "Zwischen Savignyplatz und Leibnizstraße frischer glatter Flüsterasphalt fertiggestellt."
+                    },
+                    kiez = "Charlottenburg",
+                    category = "Verkehr",
+                    author = "Elena",
+                    timeAgo = formatKiezTimeAgo(6, lang),
+                    upvotes = 24
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_9",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Oranienplatz: Cumartesi günü ücretsiz bisiklet tamir atölyesi"
+                        AppLanguage.ENGLISH -> "Oranienplatz: Free community bicycle repair workshop on Saturday"
+                        else -> "Oranienplatz: Kostenlose Fahrrad-Reparatur-Werkstatt am Samstag"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Gönüllü tamirciler lastik yamama, fren ayarı ve zincir yağlamada yardımcı oluyor."
+                        AppLanguage.ENGLISH -> "Volunteer mechanics helping with tire patches, brake tuning, and chain lubrication."
+                        else -> "Freiwillige Mechaniker helfen beim Schlauchflicken, Bremsen einstellen und Kette ölen."
+                    },
+                    kiez = "Kreuzberg",
+                    category = "Kultur",
+                    author = "Mehmet",
+                    timeAgo = formatKiezTimeAgo(7, lang),
+                    upvotes = 39
+                ),
+                KiezReporterPost(
+                    id = "rep_d1_10",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Turmstraße: 'Spreeufer' komşuluk kafesi açıldı"
+                        AppLanguage.ENGLISH -> "Turmstraße: Opening of 'Spreeufer' neighborhood café"
+                        else -> "Turmstraße: Eröffnung des Nachbarschafts-Cafés 'Spreeufer'"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Adil ticaret kahvesi, çocuklar için oyun köşesi ve kapı önünde ücretsiz kitap takas dolabı."
+                        AppLanguage.ENGLISH -> "Fair-trade coffee, kids play area, and an outdoor book-swap shelf."
+                        else -> "Kaffee aus fairem Handel, Spielecke für Kinder und kleiner Tauschschrank vor der Tür."
+                    },
+                    kiez = "Moabit",
+                    category = "Neueröffnung",
+                    author = "Julia",
+                    timeAgo = formatKiezTimeAgo(8, lang),
+                    upvotes = 19
+                )
+            )
+            else -> listOf(
+                KiezReporterPost(
+                    id = "rep_d2_1",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Tempelhofer Feld: Batı girişinde yeni rüzgar sörfü & kaykay alanı"
+                        AppLanguage.ENGLISH -> "Tempelhofer Feld: New wind-skate area near west entrance"
+                        else -> "Tempelhofer Feld: Neuer Bereich für Windskaten am Westeingang"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Oderstraße girişinde pist asfaltı temizlendi, rüzgar sporları meraklıları toplanıyor."
+                        AppLanguage.ENGLISH -> "Runway asphalt cleaned at Oderstraße gate, wind sports enthusiasts gathering."
+                        else -> "Am Eingang Oderstraße wurde die Rollbahn gereinigt. Ideal für Longboards und Windskater."
+                    },
+                    kiez = "Tempelhof",
+                    category = "Kultur",
+                    author = "Selin",
+                    timeAgo = formatKiezTimeAgo(1, lang),
+                    upvotes = 26
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_2",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Bergmannstraße: Yeni yaya öncelikli bölge genişletildi"
+                        AppLanguage.ENGLISH -> "Bergmannstraße: Pedestrian priority zone expanded"
+                        else -> "Bergmannstraße: Fußgängerzone um weitere Abschnitte erweitert"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Schenkendorfstraße ile Nostitzstraße arasında oturma bankları ve çiçeklikler kuruldu."
+                        AppLanguage.ENGLISH -> "Benches and plant containers installed between Schenkendorfstraße and Nostitzstraße."
+                        else -> "Neue Holzbänke und Pflanzenkübel zwischen Schenkendorf- und Nostitzstraße aufgestellt."
+                    },
+                    kiez = "Kreuzberg",
+                    category = "Verkehr",
+                    author = "Florian",
+                    timeAgo = formatKiezTimeAgo(2, lang),
+                    upvotes = 32
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_3",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Mauerpark: Kırmızı sırt çantası tribün basamaklarında unutulmuş"
+                        AppLanguage.ENGLISH -> "Mauerpark: Red backpack left on amphitheater stairs"
+                        else -> "Mauerpark: Roter Rucksack am Amphitheater vergessen"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "İçinde çizim defteri ve termos var. Park görevlilerine teslim edildi."
+                        AppLanguage.ENGLISH -> "Contains sketchbook and thermal mug. Handed to park staff."
+                        else -> "Enthält Skizzenblock und Edelstahl-Trinkflasche. Beim Parkpersonal hinterlegt."
+                    },
+                    kiez = "Prenzlauer Berg",
+                    category = "Fundbüro",
+                    author = "Yasemin",
+                    timeAgo = formatKiezTimeAgo(3, lang),
+                    upvotes = 13
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_4",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Invalidenstraße: M8 ve M10 Tramvay hattında ray bakım çalışması"
+                        AppLanguage.ENGLISH -> "Invalidenstraße: Track maintenance on M8 & M10 tram lines"
+                        else -> "Invalidenstraße: Gleisarbeiten an den Linien M8 und M10"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Hauptbahnhof ile Nordbahnhof arasında otobüslerle yedek sefer yapılıyor."
+                        AppLanguage.ENGLISH -> "Replacement bus service operating between Hauptbahnhof and Nordbahnhof."
+                        else -> "Ersatzverkehr mit Bussen zwischen Hauptbahnhof und Nordbahnhof eingerichtet."
+                    },
+                    kiez = "Mitte",
+                    category = "Verkehr",
+                    author = "Niklas",
+                    timeAgo = formatKiezTimeAgo(4, lang),
+                    upvotes = 20
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_5",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Weserstraße: Yeni organik dondurmacı 'KiezGlace'"
+                        AppLanguage.ENGLISH -> "Weserstraße: New organic ice cream parlor 'KiezGlace'"
+                        else -> "Weserstraße: Neuer Bio-Eisladen 'KiezGlace' eröffnet"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Tuzlu karamel, antep fıstığı ve fesleğenli limon sorbe çeşitleri çok lezzetli."
+                        AppLanguage.ENGLISH -> "Artisan salted caramel, Sicilian pistachio, and basil lemon sorbet."
+                        else -> "Hausgemachtes Salted Caramel, sizilianische Pistazie und Basilikum-Zitronen-Sorbet."
+                    },
+                    kiez = "Neukölln",
+                    category = "Neueröffnung",
+                    author = "Leyla",
+                    timeAgo = formatKiezTimeAgo(4, lang),
+                    upvotes = 29
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_6",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Schloßstraße: Kaldırım yenilemesi nedeniyle geçici daralma"
+                        AppLanguage.ENGLISH -> "Schloßstraße: Sidewalk resurfacing causes temporary narrowing"
+                        else -> "Schloßstraße: Gehwegerneuerung sorgt für Engstelle"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Walther-Schreiber-Platz yakınında yayalar için korunaklı ahşap geçit oluşturuldu."
+                        AppLanguage.ENGLISH -> "Protected pedestrian passage set up near Walther-Schreiber-Platz."
+                        else -> "Nahe Walther-Schreiber-Platz ist ein gesicherter Fußgängertunnel eingerichtet."
+                    },
+                    kiez = "Steglitz",
+                    category = "Baustelle",
+                    author = "David",
+                    timeAgo = formatKiezTimeAgo(5, lang),
+                    upvotes = 11
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_7",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Treptower Park: İskele yanında kayıp kedi tasması"
+                        AppLanguage.ENGLISH -> "Treptower Park: Lost cat harness near boat pier"
+                        else -> "Treptower Park: Katzengeschirr am Schiffsanleger gefunden"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Mavi küçük göğüs tasması bankın kenarına asıldı."
+                        AppLanguage.ENGLISH -> "Small blue chest harness hung on the bench."
+                        else -> "Blaues Katzengeschirr wurde an der Parklaterne gut sichtbar befestigt."
+                    },
+                    kiez = "Treptow",
+                    category = "Fundbüro",
+                    author = "Merve",
+                    timeAgo = formatKiezTimeAgo(6, lang),
+                    upvotes = 7
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_8",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Simon-Dach-Straße: Hafta sonu sakin sokak insiyatifi"
+                        AppLanguage.ENGLISH -> "Simon-Dach-Straße: Weekend quiet zone initiative"
+                        else -> "Simon-Dach-Straße: Initiative für Verkehrsberuhigung am Wochenende"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Cuma ve cumartesi akşamları motorlu araç girişine kısıtlama talep eden imza kampanyası."
+                        AppLanguage.ENGLISH -> "Petition for weekend evening traffic restrictions and more outdoor seating."
+                        else -> "Anwohner sammeln Unterschriften für verkehrsberuhigte Abende am Wochenende."
+                    },
+                    kiez = "Friedrichshain",
+                    category = "Kultur",
+                    author = "Jan",
+                    timeAgo = formatKiezTimeAgo(6, lang),
+                    upvotes = 35
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_9",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Leopoldplatz: Yeni çocuk oyun alanı açılışı"
+                        AppLanguage.ENGLISH -> "Leopoldplatz: Grand opening of new children's playground"
+                        else -> "Leopoldplatz: Neuer Abenteuerspielplatz eröffnet"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Doğal ahşap tırmanma kulesi, su fıskiyesi ve gölgelikli kum havuzu çocukların hizmetinde."
+                        AppLanguage.ENGLISH -> "Natural wood climbing tower, water play area, and shaded sandpit."
+                        else -> "Kletterturm aus Robinienholz, Wasserspiel und sonnengeschützter Sandkasten fertiggestellt."
+                    },
+                    kiez = "Wedding",
+                    category = "Neueröffnung",
+                    author = "Dilara",
+                    timeAgo = formatKiezTimeAgo(7, lang),
+                    upvotes = 42
+                ),
+                KiezReporterPost(
+                    id = "rep_d2_10",
+                    title = when (lang) {
+                        AppLanguage.TURKISH -> "Pankow Florastraße: Ağaç budama çalışmaları nedeniyle tek şerit"
+                        AppLanguage.ENGLISH -> "Pankow Florastraße: Tree pruning causes single-lane traffic"
+                        else -> "Pankow Florastraße: Baumpflegearbeiten erfordern Einbahnverkehr"
+                    },
+                    description = when (lang) {
+                        AppLanguage.TURKISH -> "Belediye ekipleri kuru dalları temizliyor. Otobüs hatlarında kısa beklemeler olabilir."
+                        AppLanguage.ENGLISH -> "City crews trimming dry branches. Brief delays on local bus lines."
+                        else -> "Grünflächenamt stutzt Totholz. Bitte Parkverbotsbeschilderung beachten."
+                    },
+                    kiez = "Pankow",
+                    category = "Baustelle",
+                    author = "Maximilian",
+                    timeAgo = formatKiezTimeAgo(8, lang),
+                    upvotes = 16
+                )
+            )
+        }
+    }
+
+    // Abwärtskompatible Eigenschaft für bestehenden Code
+    val reporterPosts: List<KiezReporterPost>
+        get() = getDailyReporterPosts(AppLanguage.GERMAN)
 }

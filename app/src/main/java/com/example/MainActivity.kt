@@ -45,10 +45,26 @@ class MainActivity : ComponentActivity() {
             val viewModel: MyKiezViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+            // Handle incoming notification navigation clicks
+            LaunchedEffect(intent) {
+                intent?.getStringExtra(com.example.util.BerlinNotificationManager.EXTRA_TARGET_SCREEN)?.let { target ->
+                    when (target) {
+                        "BUSINESS_PORTAL" -> viewModel.navigateTo(AppScreen.BUSINESS_PORTAL)
+                        "LIVE_BULLETIN" -> viewModel.navigateTo(AppScreen.LIVE_BULLETIN)
+                        "NOTRUF" -> viewModel.navigateTo(AppScreen.NOTRUF)
+                    }
+                }
+            }
+
             MyApplicationTheme(darkTheme = uiState.isDarkMode) {
                 MyKiezMainApp(viewModel)
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 }
 
@@ -75,7 +91,10 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                             uiState.currentScreen == AppScreen.FOOD ||
                             uiState.currentScreen == AppScreen.DEALS,
                     searchQuery = uiState.searchQuery,
-                    onSearchChange = { viewModel.setSearchQuery(it) }
+                    onSearchChange = { viewModel.setSearchQuery(it) },
+                    isNotificationsEnabled = uiState.isNotificationsEnabled,
+                    onToggleNotifications = { viewModel.toggleNotifications(it) },
+                    onTriggerTestNotification = { viewModel.triggerTestNotification() }
                 )
             }
         },
@@ -130,13 +149,15 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                 )
 
                 AppScreen.NOTRUF -> EmergencyScreen(
-                    language = uiState.language
+                    language = uiState.language,
+                    onNavigateToLiveBulletin = { viewModel.navigateTo(AppScreen.LIVE_BULLETIN) }
                 )
 
                 AppScreen.REPORTER -> KiezReporterScreen(
                     language = uiState.language,
                     customPosts = uiState.customReports,
-                    onSubmitPost = { t, k, c, d, a -> viewModel.submitReporterPost(t, k, c, d, a) }
+                    onSubmitPost = { t, k, c, d, a -> viewModel.submitReporterPost(t, k, c, d, a) },
+                    onAddComment = { postId, author, text -> viewModel.addReporterComment(postId, author, text) }
                 )
 
                 AppScreen.KIEZE -> KiezListScreen(
@@ -224,7 +245,9 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                     onToggleDarkMode = { viewModel.toggleDarkMode() },
                     locationGranted = uiState.locationPermissionGranted,
                     onToggleLocation = { viewModel.toggleLocationPermission() },
-                    onNavigate = { viewModel.navigateTo(it) }
+                    onNavigate = { viewModel.navigateTo(it) },
+                    notificationsEnabled = uiState.isNotificationsEnabled,
+                    onToggleNotifications = { viewModel.toggleNotifications(it) }
                 )
 
                 AppScreen.BUSINESS_PORTAL -> BusinessPortalScreen(
@@ -272,6 +295,11 @@ fun MyKiezMainApp(viewModel: MyKiezViewModel) {
                     onSelectFolder = { viewModel.selectBulletinFolder(it) },
                     onSearchChange = { viewModel.setBulletinSearchQuery(it) },
                     onRefresh = { viewModel.refreshLiveBulletins() },
+                    onBack = { viewModel.navigateTo(AppScreen.HOME) }
+                )
+
+                AppScreen.BERLIN_TIPS -> BerlinTipsScreen(
+                    language = uiState.language,
                     onBack = { viewModel.navigateTo(AppScreen.HOME) }
                 )
             }

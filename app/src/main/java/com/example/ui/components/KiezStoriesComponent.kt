@@ -142,16 +142,50 @@ fun KiezStoriesBar(
     }
 }
 
+data class InstitutionBrand(
+    val shortName: String,
+    val bgColor: Color,
+    val textColor: Color
+)
+
+fun getInstitutionBrand(storyId: String, author: String = ""): InstitutionBrand {
+    return when {
+        storyId.contains("bvg") || author.contains("BVG", ignoreCase = true) ->
+            InstitutionBrand("BVG", Color(0xFFFFCC00), Color.Black)
+        storyId.contains("sbahn") || author.contains("S-Bahn", ignoreCase = true) ->
+            InstitutionBrand("S-Bahn", Color(0xFF008754), Color.White)
+        storyId.contains("feuerwehr") || author.contains("Feuerwehr", ignoreCase = true) ->
+            InstitutionBrand("Feuerwehr", Color(0xFFD32F2F), Color.White)
+        storyId.contains("polizei") || author.contains("Polizei", ignoreCase = true) ->
+            InstitutionBrand("Polizei", Color(0xFF002D5A), Color.White)
+        storyId.contains("buergeramt") || author.contains("Bürgeramt", ignoreCase = true) ->
+            InstitutionBrand("Bürgeramt", Color(0xFF1565C0), Color.White)
+        storyId.contains("senat") || author.contains("Senat", ignoreCase = true) ->
+            InstitutionBrand("Senat", Color(0xFFBA1A1A), Color.White)
+        storyId.contains("kultur") || author.contains("Kultur", ignoreCase = true) ->
+            InstitutionBrand("Kultur", Color(0xFF7B1FA2), Color.White)
+        else ->
+            InstitutionBrand("Berlin", Color(0xFFC62828), Color.White)
+    }
+}
+
 @Composable
 fun StoryAvatarItem(
     story: KiezStory,
     onClick: () -> Unit
 ) {
-    val borderColor = when (story.headlineColor.lowercase()) {
-        "blau" -> BerlinBlue
-        "rot" -> BerlinRed
-        "gelb" -> BerlinYellow
-        else -> BerlinGreen
+    val isInstitution = story.id.startsWith("inst_story_")
+    val brand = if (isInstitution) getInstitutionBrand(story.id, story.author) else null
+
+    val borderColor = if (brand != null) {
+        brand.bgColor
+    } else {
+        when (story.headlineColor.lowercase()) {
+            "blau" -> BerlinBlue
+            "rot" -> BerlinRed
+            "gelb" -> BerlinYellow
+            else -> BerlinGreen
+        }
     }
 
     Column(
@@ -165,10 +199,18 @@ fun StoryAvatarItem(
                 .border(2.5.dp, borderColor, CircleShape)
                 .padding(3.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(if (brand != null) brand.bgColor else MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            if (story.mediaUri != null) {
+            if (brand != null) {
+                Text(
+                    text = brand.shortName,
+                    color = brand.textColor,
+                    fontSize = if (brand.shortName.length > 5) 10.sp else 12.sp,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center
+                )
+            } else if (story.mediaUri != null) {
                 AsyncImage(
                     model = story.mediaUri,
                     contentDescription = story.headline,
@@ -193,11 +235,16 @@ fun StoryAvatarItem(
                 )
             }
         }
+        val avatarLabel = if (brand != null) {
+            brand.shortName
+        } else {
+            story.kiez
+        }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = story.kiez,
+            text = avatarLabel,
             fontSize = 10.5.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1
         )
@@ -415,6 +462,44 @@ fun StoryViewerDialog(
                             },
                             modifier = Modifier.fillMaxSize()
                         )
+                    } else if (story.id.startsWith("inst_story_")) {
+                        val brand = getInstitutionBrand(story.id, story.author)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(brand.bgColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = brand.bgColor,
+                                    border = androidx.compose.foundation.BorderStroke(2.5.dp, brand.textColor.copy(alpha = 0.4f)),
+                                    shadowElevation = 6.dp
+                                ) {
+                                    Text(
+                                        text = brand.shortName,
+                                        color = brand.textColor,
+                                        fontSize = 42.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 1.sp,
+                                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 14.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = story.author,
+                                    color = brand.textColor.copy(alpha = 0.9f),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
                     } else if (story.mediaUri != null) {
                         AsyncImage(
                             model = story.mediaUri,
@@ -469,22 +554,6 @@ fun StoryViewerDialog(
                         )
                     }
 
-                    // SAĞ ÜSTTEKİ SADE LOGO (YAZISIZ, BÜYÜK VE BELİRGİN)
-                    Surface(
-                        shape = RoundedCornerShape(bottomStart = 12.dp),
-                        color = Color.Black.copy(alpha = 0.65f),
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_mykiez_logo),
-                            contentDescription = "My Kiez Logo",
-                            modifier = Modifier
-                                .size(42.dp)
-                                .padding(5.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-
                     // Watermark Preview Badge auf Bild unten rechts
                     Surface(
                         shape = RoundedCornerShape(topStart = 8.dp),
@@ -524,46 +593,77 @@ fun StoryViewerDialog(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // 6. GÖREV: YUKARI KAYDIRILMIŞ ERGONOMİK AKSİYON ALANI (Geniş boşluk, tam görünürlük)
+                // Kompakt & Derli Toplu Ergonomik Aksiyon Alanı
                 Surface(
                     color = Color(0xFF232528),
-                    shape = RoundedCornerShape(18.dp),
-                    tonalElevation = 6.dp,
-                    shadowElevation = 8.dp,
+                    shape = RoundedCornerShape(16.dp),
+                    tonalElevation = 4.dp,
+                    shadowElevation = 6.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp)
-                        .padding(bottom = 32.dp)
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
+                        // Official Institution source banner if it's an institution bulletin
+                        if (story.id.startsWith("inst_story_") && story.author.isNotBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = bannerColor.copy(alpha = 0.25f)
+                                ) {
+                                    Text(
+                                        text = if (language == AppLanguage.TURKISH) "🏛 RESMİ BÜLTEN" else if (language == AppLanguage.ENGLISH) "🏛 OFFICIAL BULLETIN" else "🏛 OFFIZIELL",
+                                        color = bannerColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Text(
+                                    text = story.author,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 11.5.sp,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
                         // Metin Başlığı ve Kategori Rozeti
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = bannerColor
+                                shape = RoundedCornerShape(10.dp),
+                                color = bannerColor,
+                                modifier = Modifier.padding(top = 1.dp)
                             ) {
                                 Text(
                                     text = story.kind.uppercase(),
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    fontSize = 9.5.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
                             Text(
                                 text = story.headline,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                maxLines = 1,
+                                fontSize = 14.5.sp,
+                                lineHeight = 19.sp,
+                                maxLines = 2,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -573,15 +673,14 @@ fun StoryViewerDialog(
                             Text(
                                 text = story.subtext,
                                 color = Color(0xFFE2E8F0),
-                                fontSize = 12.sp,
+                                fontSize = 12.5.sp,
                                 maxLines = 2,
-                                lineHeight = 16.sp
+                                lineHeight = 16.5.sp
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                        // 6. & 7. GÖREV: YUKARI TAŞINMIŞ BÜYÜK & BELİRGİN AKSİYON BUTONLARI
                         val hasExternalSource = story.link.isNotBlank() &&
                                 story.link != "https://mykiezberlin.com" &&
                                 (story.link.startsWith("http://") || story.link.startsWith("https://"))
@@ -589,8 +688,8 @@ fun StoryViewerDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                .height(42.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // [KAYNAĞA GİT / DEVAM OKU] Button

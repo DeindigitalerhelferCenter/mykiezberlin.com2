@@ -236,8 +236,7 @@ fun FavoritesScreen(
                         }
                         OutlinedButton(
                             onClick = {
-                                val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${spot.name}+Berlin"))
-                                context.startActivity(Intent.createChooser(mapIntent, "Karte"))
+                                com.example.util.MapHelper.openDirections(context, "${spot.name} Berlin")
                             },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp)
@@ -276,8 +275,7 @@ fun FavoritesScreen(
                     Spacer(modifier = Modifier.height(14.dp))
                     Button(
                         onClick = {
-                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${ev.locationAddress}+Berlin"))
-                            context.startActivity(Intent.createChooser(mapIntent, "Ort öffnen"))
+                            com.example.util.MapHelper.openDirections(context, "${ev.locationAddress} Berlin")
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -318,8 +316,7 @@ fun FavoritesScreen(
                         }
                         OutlinedButton(
                             onClick = {
-                                val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${biz.name}+Berlin"))
-                                context.startActivity(Intent.createChooser(mapIntent, "Karte"))
+                                com.example.util.MapHelper.openDirections(context, "${biz.name} ${biz.address} Berlin")
                             },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp)

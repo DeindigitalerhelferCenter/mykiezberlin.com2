@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,7 +34,10 @@ fun MyKiezTopBar(
     onOpenHamburgerMenu: () -> Unit = {},
     showSearchBox: Boolean = true,
     searchQuery: String = "",
-    onSearchChange: (String) -> Unit = {}
+    onSearchChange: (String) -> Unit = {},
+    isNotificationsEnabled: Boolean = true,
+    onToggleNotifications: (Boolean) -> Unit = {},
+    onTriggerTestNotification: () -> Unit = {}
 ) {
     var showLangMenu by remember { mutableStateOf(false) }
 
@@ -56,11 +60,36 @@ fun MyKiezTopBar(
                 onClick = { onNavigate(AppScreen.HOME) }
             )
 
-            // Right Actions: B2B Business Link, Language Selector, Notifications
+            // Right Actions: Live Ticker, B2B Business Link, Language Selector, Notifications
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                // Live Ticker Button
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = BerlinRed,
+                    modifier = Modifier.clickable { onNavigate(AppScreen.LIVE_BULLETIN) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White,
+                            modifier = Modifier.size(6.dp)
+                        ) {}
+                        Text(
+                            text = if (currentLanguage == AppLanguage.TURKISH) "Canlı Bülten" else "Live-Ticker",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp
+                        )
+                    }
+                }
+
                 // Sponsoring / B2B Link
                 Surface(
                     shape = RoundedCornerShape(16.dp),
@@ -68,7 +97,7 @@ fun MyKiezTopBar(
                     modifier = Modifier.clickable { onNavigate(AppScreen.BUSINESS_PORTAL) }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -76,13 +105,13 @@ fun MyKiezTopBar(
                             imageVector = Icons.Default.Business,
                             contentDescription = "B2B Unternehmen",
                             tint = BerlinRed,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                         Text(
-                            text = if (currentLanguage == AppLanguage.TURKISH) "İşletmeler" else if (currentLanguage == AppLanguage.ENGLISH) "B2B" else "B2B Werben",
+                            text = if (currentLanguage == AppLanguage.TURKISH) "İşletmeler" else if (currentLanguage == AppLanguage.ENGLISH) "B2B" else "B2B",
                             color = BerlinRed,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                            fontSize = 10.5.sp
                         )
                     }
                 }
@@ -153,53 +182,162 @@ fun MyKiezTopBar(
                         },
                         title = {
                             Text(
-                                text = if (currentLanguage == AppLanguage.TURKISH) "Kiez Bildirimleri" else "Kiez-Mitteilungen",
-                                fontWeight = FontWeight.Bold
+                                text = if (currentLanguage == AppLanguage.TURKISH) "Kiez Bildirimleri & Canlı Uyarılar" else "Kiez-Mitteilungen & Live-Alerts",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
                             )
                         },
                         text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                // Master Toggle for Periodic Notifications
                                 Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = BerlinRedLight,
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(modifier = Modifier.padding(10.dp)) {
-                                        Text(
-                                            text = if (currentLanguage == AppLanguage.TURKISH) "🎉 Yeni Kiez İndirimi!" else "🎉 Neuer Kiez-Deal!",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp,
-                                            color = BerlinRed
-                                        )
-                                        Text(
-                                            text = if (currentLanguage == AppLanguage.TURKISH)
-                                                "Café Anna Blume'de %20 kahvaltı indirimi başladı."
-                                            else
-                                                "20% Rabatt auf Frühstückssets im Café Anna Blume.",
-                                            fontSize = 11.5.sp
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                            Text(
+                                                text = if (currentLanguage == AppLanguage.TURKISH) "Otomatik Bildirimler" else "Automatische Benachrichtigungen",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.5.sp
+                                            )
+                                            Text(
+                                                text = if (currentLanguage == AppLanguage.TURKISH) "Her 2-3 saatte bir bülten ve görünürlük hatırlatmaları" else "Alle 2-3 Stunden Live-Ticker & Kiez-Updates",
+                                                fontSize = 10.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Switch(
+                                            checked = isNotificationsEnabled,
+                                            onCheckedChange = { onToggleNotifications(it) }
                                         )
                                     }
                                 }
 
+                                // 1. Business Visibility Promotion Card (İşletmeniz tüm Berlin'de görünür olsun mu?)
                                 Surface(
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = BerlinRedLight,
+                                    border = BorderStroke(1.dp, BerlinRed.copy(alpha = 0.3f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            showNotificationsDialog = false
+                                            onNavigate(AppScreen.BUSINESS_PORTAL)
+                                        }
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = if (currentLanguage == AppLanguage.TURKISH) "🚀 İşletmeniz Tüm Berlin'de Görünsün mü?" else "🚀 Unternehmen berlinweit sichtbar machen?",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = BerlinRed
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = if (currentLanguage == AppLanguage.TURKISH)
+                                                "Kiez Rehberine işletmenizi kaydedin, mahallenizdeki müşterilere tek tıkla ulaşın. Şimdi inceleyin ↗"
+                                            else
+                                                "Tragen Sie Ihr Geschäft jetzt im Kiez-Guide ein & erreichen Sie neue Kunden. Jetzt eintragen ↗",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+
+                                // 2. Real Live Emergency Event Card (Berliner Feuerwehr)
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
                                     color = MaterialTheme.colorScheme.surfaceVariant,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            showNotificationsDialog = false
+                                            onNavigate(AppScreen.LIVE_BULLETIN)
+                                        }
                                 ) {
                                     Column(modifier = Modifier.padding(10.dp)) {
                                         Text(
-                                            text = if (currentLanguage == AppLanguage.TURKISH) "📍 Yeni İşletme Eklendi" else "📍 Neuer Betrieb eingetragen",
+                                            text = if (currentLanguage == AppLanguage.TURKISH) "🚒 Berliner Feuerwehr: Başarılı Müdahale" else "🚒 Berliner Feuerwehr: Erfolgreicher Einsatz",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp
                                         )
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = if (currentLanguage == AppLanguage.TURKISH)
-                                                "Neukölln Sonnenallee'de yeni Bäckerei & Café açıldı."
+                                                "Charlottenburg'da teknik kurtarma operasyonu tamamlandı. Canlı bülteni aç ↗"
                                             else
-                                                "Bäckerei Brotzeit hat in Neukölln eröffnet.",
-                                            fontSize = 11.5.sp
+                                                "Hilfeleistungseinsatz in Charlottenburg abgeschlossen. Zum Live-Ticker ↗",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
+                                }
+
+                                // 3. BVG & S-Bahn Live-Ticker Alert Card
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            showNotificationsDialog = false
+                                            onNavigate(AppScreen.LIVE_BULLETIN)
+                                        }
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text(
+                                            text = if (currentLanguage == AppLanguage.TURKISH) "🚇 BVG & S-Bahn: Sefer Güncellemesi" else "🚇 BVG & S-Bahn: Live-Verkehrsupdate",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = if (currentLanguage == AppLanguage.TURKISH)
+                                                "Metro ve Ringbahn hatlarında güncel sefer saatleri ve bakım bilgileri yayında ↗"
+                                            else
+                                                "Aktuelle Takt- und Streckeninformationen im Stadtgebiet online ↗",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                // Test Notification Trigger Button
+                                OutlinedButton(
+                                    onClick = {
+                                        onTriggerTestNotification()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = BerlinRed
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (currentLanguage == AppLanguage.TURKISH) "Test Bildirimi Gönder" else "Test-Benachrichtigung senden",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                 }
                             }
                         },

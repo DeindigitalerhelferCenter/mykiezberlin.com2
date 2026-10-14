@@ -1,3 +1,5 @@
+package com.example.ui.viewmodel
+
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -5,6 +7,7 @@ import com.example.data.model.*
 import com.example.data.repository.BerlinBulletinRepository
 import com.example.data.repository.KiezStorageManager
 import com.example.data.repository.SampleData
+import com.example.util.BerlinNotificationManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +33,8 @@ enum class AppScreen {
     NOTRUF,
     REPORTER,
     ADMIN,
-    LIVE_BULLETIN
+    LIVE_BULLETIN,
+    BERLIN_TIPS
 }
 
 data class UiState(
@@ -90,22 +94,41 @@ data class UiState(
     val liveBulletins: List<BerlinLiveBulletin> = emptyList(),
     val activeBulletinFolder: BulletinFolder = BulletinFolder.ALL,
     val bulletinSearchQuery: String = "",
-    val lastBulletinUpdateMillis: Long = System.currentTimeMillis()
+    val lastBulletinUpdateMillis: Long = System.currentTimeMillis(),
+    val isNotificationsEnabled: Boolean = true
 )
 
 class MyKiezViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application
 
-    private val _uiState = MutableStateFlow(
-        UiState(
-            allStories = KiezStorageManager.loadStories(application),
-            isAdminAuthenticated = KiezStorageManager.isAdminAuthenticated(application),
-            liveBulletins = BerlinBulletinRepository.loadBulletins(application)
+    private val _uiState: MutableStateFlow<UiState>
+
+    init {
+        val initialLang = KiezStorageManager.loadLanguage(application)
+        val initialBulletins = BerlinBulletinRepository.loadBulletins(application)
+        val userStories = KiezStorageManager.loadStories(application)
+        val instStories = BerlinBulletinRepository.generateInstitutionStories(initialBulletins, initialLang)
+        val mergedStories = instStories + userStories.filter { u -> instStories.none { it.id == u.id } }
+        val savedReports = KiezStorageManager.loadCustomReports(application)
+
+        _uiState = MutableStateFlow(
+            UiState(
+                language = initialLang,
+                isNotificationsEnabled = KiezStorageManager.isNotificationsEnabled(application),
+                allStories = mergedStories,
+                isAdminAuthenticated = KiezStorageManager.isAdminAuthenticated(application),
+                liveBulletins = initialBulletins,
+                customReports = savedReports
+            )
         )
-    )
+    }
+
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     init {
+        // Create notification channel
+        BerlinNotificationManager.createNotificationChannel(application)
+
         // Hourly maintenance coroutine: Prunes bulletins older than 24h
         viewModelScope.launch {
             while (true) {
@@ -114,7 +137,25 @@ class MyKiezViewModel(application: Application) : AndroidViewModel(application) 
                 val pruned = BerlinBulletinRepository.pruneExpiredBulletins(current)
                 if (pruned.size != current.size) {
                     BerlinBulletinRepository.saveBulletins(app, pruned)
-                    _uiState.update { it.copy(liveBulletins = pruned) }
+                    val lang = _uiState.value.language
+                    val uStories = KiezStorageManager.loadStories(app)
+                    val iStories = BerlinBulletinRepository.generateInstitutionStories(pruned, lang)
+                    val mStories = iStories + uStories.filter { u -> iStories.none { it.id == u.id } }
+                    _uiState.update { it.copy(liveBulletins = pruned, allStories = mStories) }
+                }
+            }
+        }
+
+        // Automatic Notifications Scheduler (every 2-3 hours)
+        viewModelScope.launch {
+            delay(15_000L) // Initial engagement reminder shortly after startup
+            if (KiezStorageManager.isNotificationsEnabled(app)) {
+                BerlinNotificationManager.triggerNextNotification(app, _uiState.value.language)
+            }
+            while (true) {
+                delay(2 * 3600 * 1000L) // Every 2 hours
+                if (KiezStorageManager.isNotificationsEnabled(app)) {
+                    BerlinNotificationManager.triggerNextNotification(app, _uiState.value.language)
                 }
             }
         }
@@ -123,9 +164,14 @@ class MyKiezViewModel(application: Application) : AndroidViewModel(application) 
     fun refreshLiveBulletins() {
         val updated = BerlinBulletinRepository.generateHourlyRefresh(_uiState.value.liveBulletins)
         BerlinBulletinRepository.saveBulletins(app, updated)
+        val currentLang = _uiState.value.language
+        val uStories = KiezStorageManager.loadStories(app)
+        val iStories = BerlinBulletinRepository.generateInstitutionStories(updated, currentLang)
+        val mStories = iStories + uStories.filter { u -> iStories.none { it.id == u.id } }
         _uiState.update {
             it.copy(
                 liveBulletins = updated,
+                allStories = mStories,
                 lastBulletinUpdateMillis = System.currentTimeMillis()
             )
         }
@@ -144,7 +190,21 @@ class MyKiezViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setLanguage(language: AppLanguage) {
-        _uiState.update { it.copy(language = language) }
+        KiezStorageManager.saveLanguage(app, language)
+        val currentBulletins = _uiState.value.liveBulletins
+        val uStories = KiezStorageManager.loadStories(app)
+        val iStories = BerlinBulletinRepository.generateInstitutionStories(currentBulletins, language)
+        val mStories = iStories + uStories.filter { u -> iStories.none { it.id == u.id } }
+        _uiState.update { it.copy(language = language, allStories = mStories) }
+    }
+
+    fun toggleNotifications(enabled: Boolean) {
+        KiezStorageManager.setNotificationsEnabled(app, enabled)
+        _uiState.update { it.copy(isNotificationsEnabled = enabled) }
+    }
+
+    fun triggerTestNotification() {
+        BerlinNotificationManager.triggerNextNotification(app, _uiState.value.language)
     }
 
     fun toggleDarkMode() {
@@ -603,13 +663,38 @@ class MyKiezViewModel(application: Application) : AndroidViewModel(application) 
             description = desc,
             kiez = kiez,
             category = category,
-            author = author,
-            timeAgo = "gerade eben",
-            upvotes = 1
+            author = author.ifBlank { "Berliner Nachbar" },
+            timeAgo = "Gerade eben",
+            upvotes = 1,
+            comments = emptyList()
         )
+        val updated = listOf(post) + _uiState.value.customReports
         _uiState.update {
-            it.copy(customReports = listOf(post) + it.customReports)
+            it.copy(customReports = updated)
         }
+        KiezStorageManager.saveCustomReports(app, updated)
+    }
+
+    fun addReporterComment(postId: String, author: String, text: String) {
+        if (text.isBlank()) return
+        val comment = KiezReporterComment(
+            id = "comm_${System.currentTimeMillis()}",
+            author = if (author.isBlank()) "Berliner Nachbar" else author.trim(),
+            text = text.trim()
+        )
+        val updatedComments = KiezStorageManager.addCommentToPost(app, postId, comment)
+
+        val updatedCustom = _uiState.value.customReports.map { post ->
+            if (post.id == postId) {
+                post.copy(comments = updatedComments)
+            } else {
+                post
+            }
+        }
+        _uiState.update {
+            it.copy(customReports = updatedCustom)
+        }
+        KiezStorageManager.saveCustomReports(app, updatedCustom)
     }
 
     // Quiz Functions
